@@ -3,7 +3,6 @@
 namespace seq
 {
 	using chain = std::vector<mwave::Pattern>;
-	//class chain {};
 
 	class leaf
 	{
@@ -25,6 +24,8 @@ namespace seq
 		const std::vector<leaf>& get_leaves()const;
 		const std::vector<INT_PTR>& get_indexes()const;
 		size_t get_max_depth()const;
+		HTREEITEM get_handle()const;
+		const leaf* find(HTREEITEM)const;
 
 		void set_indexes(std::vector<INT_PTR>&& v);
 		bool grow(const chain& mws);

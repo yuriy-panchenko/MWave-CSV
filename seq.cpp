@@ -33,39 +33,37 @@ namespace seq
 		leaves.clear();
 
 		const auto id{ get_chain() };
-		//const auto depth{ get_level() };
-		//ASSERT(id.size() == (size_t)depth + 1);
-		//if (id.size() >= max_depth)
-			//return false;
 
-		auto is_same_chain = [&](INT_PTR index)->bool
+		if (id.size() == 1)
+			indexes.reserve(mws.size() / 32);
+		else indexes.reserve(pPrev->get_indexes().size());
+
+		//auto is_same_chain = [&](INT_PTR index)->bool
+		//	{
+		//		if (index < INT_PTR(id.size() - 1))
+		//			return false;
+
+		//		auto const irFrom{ mws.crbegin() + (mws.size() - index - 1) },
+		//			irTo{ irFrom + id.size() };
+
+		//		ASSERT(irFrom < mws.crend());
+
+		//		return chain{ irFrom, irTo } == id;
+		//	};
+
+		if (pPrev)
+			for (auto ind : pPrev->get_indexes())
 			{
-				if (index < (INT_PTR)id.size())
-					return false;
-
-				auto const irFrom{ mws.crbegin() + (mws.size() - index - 1) },
-					irTo{ irFrom + id.size() };
-
-				ASSERT(irFrom < mws.crend());
-
-				//auto const from{ index + 1 - (INT_PTR)id.size() };
-				//if (from < 0)
-				//	return false;
-
-				//chain ch{ mws.begin() + from,mws.begin() + index + 1 };
-				//auto iter{ ch.begin() };
-
-				//for (INT_PTR i = from; i <= index; ++i)
-				//	*iter++ = mws[i];
-
-				//std::reverse(ch.begin(), ch.end());
-
-				return chain{ irFrom, irTo } == id;
-			};
-
-		for (size_t i = 0; i < mws.size(); ++i)
-			if (mws[i] == id.front() && is_same_chain(i))
-				indexes.push_back(i);
+				if (ind
+					&& mws[ind - 1] == pat
+					//&& is_same_chain((ind - 1) + id.size() - 1)
+					)
+					indexes.push_back(ind - 1);
+			}
+		else
+			for (size_t i = 0; i < mws.size(); ++i)
+				if (mws[i] == id.front()/* && is_same_chain(i)*/)
+					indexes.push_back(i);
 
 		if (indexes.size() < 2)
 			return false;
@@ -132,6 +130,11 @@ namespace seq
 		return pRet;
 	}
 
+	const std::vector<leaf>& leaf::get_leaves() const
+	{
+		return leaves;
+	}
+
 	const std::vector<INT_PTR>& leaf::get_indexes() const
 	{
 		return indexes;
@@ -145,5 +148,22 @@ namespace seq
 			count = max(count, l.get_max_depth());
 
 		return count + 1;
+	}
+	
+	HTREEITEM leaf::get_handle() const
+	{
+		return hItem;
+	}
+	
+	const leaf* leaf::find(HTREEITEM h) const
+	{
+		if (hItem == h)
+			return this;
+		
+		for (auto& l : leaves)
+			if (auto pLeaf{ l.find(h) })
+				return pLeaf;
+
+		return nullptr;
 	}
 }

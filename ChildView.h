@@ -28,15 +28,8 @@ struct MWAVE
 
 class CChildView : public CWnd
 {
-	class InsertLeafHelper
-	{
-		seq::leaf& m_Leaf;
-		const seq::chain& m_Patterns;
+	struct MWInfo{double PProfit, maxDD, Profit;};
 
-	public:
-		InsertLeafHelper(seq::leaf&, const seq::chain&);
-		static UINT CALLBACK Proc(LPVOID);
-	};
 
 	// Construction
 public:
@@ -62,19 +55,22 @@ protected:
 	afx_msg void OnFileOpen();
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnTreeSelChanged(NMHDR*, LRESULT*);
 	DECLARE_MESSAGE_MAP()
 
 private:
 	void LoadTree();
 	void LoadList();
 	void Insert(seq::leaf& l, HTREEITEM hParent = TVI_ROOT);
-	//static UINT CALLBACK InsertLeaf(LPVOID);
+	void UpdateTree();
+	const seq::leaf* FindLeaf(HTREEITEM)const;
+	MWInfo GetInfo(const seq::leaf& l)const;
 
 private:
 	std::vector<MWAVE> m_MWaves;
 	seq::chain m_Patterns;
 	seq::leaf m_Tree[32];
-	
+
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;

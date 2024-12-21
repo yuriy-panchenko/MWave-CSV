@@ -28,6 +28,8 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_COMMAND(ID_FILE_OPEN, &CChildView::OnFileOpen)
 	ON_WM_CREATE()
 	ON_WM_ERASEBKGND()
+	ON_NOTIFY(TVN_SELCHANGED, ID_TREE_CTRL, &OnTreeSelChanged)
+	//ON_NOTIFY_REFLECT
 END_MESSAGE_MAP()
 
 
@@ -61,6 +63,7 @@ void CChildView::OnFileOpen()
 	CFileDialog dlg{ TRUE,_T(".csv"),NULL,6UL,_T("MWave data files (*.csv)|*.csv||"),this };
 	if (dlg.DoModal() == IDOK)
 	{
+		theApp.BeginWaitCursor();
 		m_MWaves.clear();// .RemoveAll();
 		m_Patterns.clear();// .RemoveAll();
 		const auto filename{ dlg.GetPathName() };
@@ -71,8 +74,9 @@ void CChildView::OnFileOpen()
 			{
 				CArchive ar{ &file,CArchive::load };
 				CString str;
-				while (ar.ReadString(str))
-					items.Add(str);
+				while (file.GetPosition() < file.GetLength())
+					if (ar.ReadString(str))
+						items.Add(str);
 			}
 		}
 
@@ -149,6 +153,7 @@ void CChildView::OnFileOpen()
 		}
 
 		LoadTree();
+		theApp.EndWaitCursor();
 	}
 }
 
@@ -161,20 +166,33 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (!m_imgList.Create(16, 16, ILC_MASK, 0, 1))
 		return -1;
 
-	if (!m_ctrlTree.Create(WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS,
+	if (!m_ctrlTree.Create(WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP
+		| TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS,
 		{}, this, ID_TREE_CTRL))
 		return -1;
 
-	if (!m_ctrlList.Create(WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_NOSORTHEADER | LVS_SHAREIMAGELISTS | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
+	if (!m_ctrlList.Create(WS_CHILD | WS_VISIBLE
+		| LVS_REPORT | LVS_NOSORTHEADER | LVS_SHAREIMAGELISTS | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
 		{}, this, ID_LIST_CTRL))
 		return -1;
 
 	icon_id_M_Wave = m_imgList.Add(theApp.LoadIcon(IDI_M_WAVE));
 	icon_id_W_Wave = m_imgList.Add(theApp.LoadIcon(IDI_W_WAVE));
 	icon_id_Leaf = m_imgList.Add(theApp.LoadIcon(IDI_LEAF2));
-	//m_ctrlTree.SetExtendedStyle()
-	//m_ctrlList.InsertColumn(col++,_T("Num"))
 	m_ctrlTree.SetImageList(&m_imgList, TVSIL_NORMAL);
+
+	//m_ctrlTree.SetExtendedStyle()
+	int col{ 0 };
+	m_ctrlList.InsertColumn(col++, _T("Num"));
+	m_ctrlList.InsertColumn(col++, _T("Pattern"));
+	m_ctrlList.InsertColumn(col++, _T("Count"));
+	m_ctrlList.InsertColumn(col++, _T("Next"));
+	m_ctrlList.InsertColumn(col++, _T("PProfit"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));
+	m_ctrlList.InsertColumn(col++, _T("maxDD"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));
+	m_ctrlList.InsertColumn(col++, _T("Profit"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));
 
 	LoadTree();
 
@@ -200,6 +218,12 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 	return TRUE;
 }
 
+void CChildView::OnTreeSelChanged(NMHDR* pHDR, LRESULT* pResult)
+{
+	LoadList();
+	*pResult = 0;
+}
+
 void CChildView::Insert(seq::leaf& l, HTREEITEM hParent)
 {
 	CString str;
@@ -218,110 +242,153 @@ void CChildView::Insert(seq::leaf& l, HTREEITEM hParent)
 		Insert(l2, h);
 }
 
-//UINT CChildView::InsertLeaf(LPVOID pVoid)
-//{
-//	const mwave::Pattern pat{ char(pVoid) };
-//
-//	theApp.Get
-//
-//	return pat.get_id();
-//}
-
-//void f(char) {}
-
-void CChildView::LoadTree()
+void CChildView::UpdateTree()
 {
-	/*auto find_indexes = [this](mwave::Pattern pat)
-		{
-			std::vector<size_t> ret;
-
-			for (size_t i = 0; i < m_Patterns.size(); ++i)
-				if (m_Patterns[i] == pat)
-					ret.push_back(i);
-
-			return ret;
-		};*/
-
-	m_ctrlTree.DeleteAllItems();
-
 	for (char i = 0; i < 32; ++i)
 		m_Tree[i] = { mwave::Pattern{ i } };
 
+	const auto thCountMax{ max(1, std::thread::hardware_concurrency()) };
 
-	/* {
-		std::function<void(char)> fun{ f };
-		auto fut = std::async(std::launch::async, fun, char(1));
+	auto proc = [this](seq::leaf& l)
+		{
+			l.grow(m_Patterns);
+		};
 
-		//bee::hive<void(const char)> hive{ proc };
-		bee::hive<void(const char)> hive{ f };
-		for (char i = 0; i < 32; ++i)
-			hive.launch(tree[i]);
+	std::vector<std::future<void>> res;
 
-	}*/
+	for (auto& l : m_Tree)
+		res.push_back(std::async(std::launch::async, proc, std::ref(l)));
 
+	for (auto& fut : res)
+		fut.wait();
+}
 
-	//auto proc = [this](const char pat)
-	//	{
-	//		m_Tree[pat].grow(m_Patterns);
-	//	};
+void CChildView::LoadTree()
+{
+	m_ctrlTree.SetRedraw(FALSE);
+	m_ctrlTree.DeleteAllItems();
 
-	{
-		const auto thCountMax{ max(1, std::thread::hardware_concurrency()) };
-
-		auto add_thread = [this](seq::leaf& l)->HANDLE
-			{
-				return *::AfxBeginThread(&CChildView::InsertLeafHelper::Proc, new InsertLeafHelper{ l, m_Patterns });
-			};
-
-		std::vector<HANDLE> Ths;
-
-		for (char i = 0; i < 32; ++i)
-			if (Ths.size() == thCountMax)
-			{
-				const auto wait_obj_id{ ::WaitForMultipleObjects(thCountMax, Ths.data(), FALSE, INFINITE) - WAIT_OBJECT_0 };
-				if (wait_obj_id < thCountMax)
-					Ths[wait_obj_id] = add_thread(m_Tree[i]);
-			}
-			else
-				Ths.push_back(add_thread(m_Tree[i]));
-
-		::WaitForMultipleObjects(thCountMax, Ths.data(), TRUE, INFINITE);
-	}
-
-	/* {
-		std::thread thrs[32];
-
-		for (char i = 0; i < 32; ++i)
-			thrs[i] = std::thread{ proc, i };
-
-		for (auto& th : thrs)
-			th.join();
-	}*/
+	UpdateTree();
 
 	for (auto& pat : m_Tree)
 		Insert(pat);
+	m_ctrlTree.SetRedraw();
 
 	LoadList();
 }
 
+const seq::leaf* CChildView::FindLeaf(HTREEITEM h)const
+{
+	for (auto& l : m_Tree)
+		if (auto pLeaf{ l.find(h) })
+			return pLeaf;
+
+	return nullptr;
+}
+
+CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
+{
+	MWInfo ret{};
+	double diff;
+	const auto ch{ l.get_chain() };
+
+	for (auto ind : l.get_indexes())
+	{
+		const auto head_index{ ind + ch.size() - 1 };
+		auto& mw{ m_MWaves[head_index] };
+		ret.PProfit += mw.PProfit;
+		ret.maxDD += mw.maxDD;
+		diff = mw.next_leg.value - mw.leg.value;
+		ret.Profit += m_Patterns[head_index].is_m() ? diff : -diff;
+	}
+
+	/*auto count{ l.get_indexes().size() };
+	ret.PProfit /= count;
+	ret.maxDD /= count;
+	ret.Profit /= count;*/
+
+	return ret;
+}
+
 void CChildView::LoadList()
 {
+	m_ctrlList.SetRedraw(FALSE);
 	m_ctrlList.DeleteAllItems();
-}
 
-CChildView::InsertLeafHelper::InsertLeafHelper(seq::leaf& l, const seq::chain& pts)
-	:m_Leaf{ l }
-	, m_Patterns{ pts }
-{
-}
+	CString str;
+	LVITEM item{};
 
-UINT CChildView::InsertLeafHelper::Proc(LPVOID pData)
-{
-	auto pHlp{ (InsertLeafHelper*)pData };
+	auto insert_leaf = [&](const seq::leaf& l)
+		{
+			item.mask = LVIF_PARAM | LVIF_TEXT;
+			item.iSubItem = 0;
+			item.lParam = (LPARAM)l.get_handle();
+			str.Format(_T("%d"), item.iItem + 1);
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.InsertItem(&item);
 
-	pHlp->m_Leaf.grow(pHlp->m_Patterns);
+			item.mask = LVIF_TEXT;
+			++item.iSubItem;
+			str = l.get_pattern().to_wstring().c_str();
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
 
-	delete pHlp;
+			++item.iSubItem;
+			str.Format(_T("%I64u"), l.get_indexes().size());
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
 
-	return 0;
+			++item.iSubItem;
+			str.Format(_T("%I64u"), l.get_leaves().size());
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
+
+			const auto info{ GetInfo(l) };
+
+			++item.iSubItem;
+			str.Format(_T("%.5g"), info.PProfit);
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
+
+			++item.iSubItem;
+
+			++item.iSubItem;
+			str.Format(_T("%.5g"), info.maxDD);
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
+
+			++item.iSubItem;
+
+			++item.iSubItem;
+			str.Format(_T("%.5g"), info.Profit);
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
+
+			++item.iItem;
+		};
+
+	auto hItem{ m_ctrlTree.GetSelectedItem() };
+	if (auto pLeaf{ FindLeaf(hItem) })
+		for (auto& l : pLeaf->get_leaves())
+			insert_leaf(l);
+	else
+		for (auto& l : m_Tree)
+			insert_leaf(l);
+
+	for (int i = 0; i < m_ctrlList.GetHeaderCtrl()->GetItemCount(); i++)
+		m_ctrlList.SetColumnWidth(i, LVSCW_AUTOSIZE);
+
+	m_ctrlList.SetRedraw();
+
+	/*m_ctrlList.InsertColumn(col++, _T("Num"));
+	m_ctrlList.InsertColumn(col++, _T("Pattern"));
+	m_ctrlList.InsertColumn(col++, _T("Count"));
+	m_ctrlList.InsertColumn(col++, _T("Next"));
+	m_ctrlList.InsertColumn(col++, _T("PProfit"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));
+	m_ctrlList.InsertColumn(col++, _T("maxDD"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));
+	m_ctrlList.InsertColumn(col++, _T("Profit"));
+	m_ctrlList.InsertColumn(col++, _T("Aver"));*/
+
 }
