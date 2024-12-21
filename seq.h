@@ -27,7 +27,7 @@ namespace seq
 		size_t get_max_depth()const;
 
 		void set_indexes(std::vector<INT_PTR>&& v);
-		bool grow(const CArray<mwave::Pattern>& mws);
+		bool grow(const chain& mws);
 		std::vector<leaf>& get_leaves();
 		std::vector<INT_PTR>& get_indexes();
 		void set_handle(HTREEITEM);

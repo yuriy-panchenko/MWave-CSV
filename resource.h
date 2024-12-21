@@ -9,15 +9,17 @@
 #define ID_TREE_CTRL                    310
 #define IDI_M_WAVE                      310
 #define ID_LIST_CTRL                    311
-#define IDI_ICON1                       311
 #define IDI_W_WAVE                      311
+#define IDI_LEAF                        312
+#define IDI_ICON1                       313
+#define IDI_LEAF2                       313
 #define ID_FILE_OPEN32771               32771
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        312
+#define _APS_NEXT_RESOURCE_VALUE        314
 #define _APS_NEXT_COMMAND_VALUE         32772
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           312

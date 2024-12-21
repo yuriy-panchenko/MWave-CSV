@@ -1,5 +1,5 @@
 
-// MWaveRec CSV.h : main header file for the MWaveRec CSV application
+// MWave CSV.h : main header file for the MWave CSV application
 //
 #pragma once
 
@@ -11,7 +11,7 @@
 
 
 // CMWaveCSVApp:
-// See MWaveRec CSV.cpp for the implementation of this class
+// See MWave CSV.cpp for the implementation of this class
 //
 
 class CMWaveCSVApp : public CWinApp

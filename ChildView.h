@@ -28,6 +28,16 @@ struct MWAVE
 
 class CChildView : public CWnd
 {
+	class InsertLeafHelper
+	{
+		seq::leaf& m_Leaf;
+		const seq::chain& m_Patterns;
+
+	public:
+		InsertLeafHelper(seq::leaf&, const seq::chain&);
+		static UINT CALLBACK Proc(LPVOID);
+	};
+
 	// Construction
 public:
 	CChildView();
@@ -58,16 +68,13 @@ private:
 	void LoadTree();
 	void LoadList();
 	void Insert(seq::leaf& l, HTREEITEM hParent = TVI_ROOT);
+	//static UINT CALLBACK InsertLeaf(LPVOID);
 
 private:
-	struct MWaveRec
-	{
-		MWAVE wave;
-		mwave::Pattern pat;
-	};
-
-	CArray<MWaveRec> m_MWaves;
-
+	std::vector<MWAVE> m_MWaves;
+	seq::chain m_Patterns;
+	seq::leaf m_Tree[32];
+	
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;

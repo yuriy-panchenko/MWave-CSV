@@ -80,5 +80,11 @@
     <Image Include="res\ico00001.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\leave_1409016.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\ico00002.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

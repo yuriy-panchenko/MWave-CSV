@@ -27,7 +27,7 @@ namespace seq
 		return pat;
 	}
 
-	bool leaf::grow(const CArray<mwave::Pattern>& mws)
+	bool leaf::grow(const chain& mws)
 	{
 		indexes.clear();
 		leaves.clear();
@@ -40,22 +40,30 @@ namespace seq
 
 		auto is_same_chain = [&](INT_PTR index)->bool
 			{
-				auto const from{ index + 1 - (INT_PTR)id.size() };
-				if (from < 0)
+				if (index < (INT_PTR)id.size())
 					return false;
 
-				chain ch(id.size());
-				auto iter{ ch.begin() };
+				auto const irFrom{ mws.crbegin() + (mws.size() - index - 1) },
+					irTo{ irFrom + id.size() };
 
-				for (INT_PTR i = from; i <= index; ++i)
-					*iter++ = mws[i];
+				ASSERT(irFrom < mws.crend());
 
-				std::reverse(ch.begin(), ch.end());
+				//auto const from{ index + 1 - (INT_PTR)id.size() };
+				//if (from < 0)
+				//	return false;
 
-				return ch == id;
+				//chain ch{ mws.begin() + from,mws.begin() + index + 1 };
+				//auto iter{ ch.begin() };
+
+				//for (INT_PTR i = from; i <= index; ++i)
+				//	*iter++ = mws[i];
+
+				//std::reverse(ch.begin(), ch.end());
+
+				return chain{ irFrom, irTo } == id;
 			};
 
-		for (INT_PTR i = 0; i < mws.GetSize(); ++i)
+		for (size_t i = 0; i < mws.size(); ++i)
 			if (mws[i] == id.front() && is_same_chain(i))
 				indexes.push_back(i);
 

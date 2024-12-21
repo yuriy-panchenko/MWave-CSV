@@ -1,5 +1,5 @@
 
-// MWaveRec CSV.cpp : Defines the class behaviors for the application.
+// MWave CSV.cpp : Defines the class behaviors for the application.
 //
 
 #include "pch.h"

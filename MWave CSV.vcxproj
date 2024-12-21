@@ -218,7 +218,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\ico00001.ico" />
+    <Image Include="res\ico00002.ico" />
     <Image Include="res\icon1.ico" />
+    <Image Include="res\leave_1409016.png" />
     <Image Include="res\MWave CSV.ico" />
     <Image Include="res\Toolbar.bmp" />
   </ItemGroup>
