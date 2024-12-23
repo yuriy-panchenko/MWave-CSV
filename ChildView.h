@@ -18,17 +18,11 @@ struct MWAVE
 	double PProfit, maxDD;
 };
 
-//struct PATTERN_INDEX_REC
-//{
-//	INT_PTR iIndex;
-//	mwave::Pattern pat;
-//};
-
 // CChildView window
 
 class CChildView : public CWnd
 {
-	struct MWInfo{double PProfit, maxDD, Profit;};
+	struct MWInfo{double PProfit, maxDD, Profit,Loss;};
 
 
 	// Construction
@@ -74,4 +68,7 @@ private:
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
+public:
+	afx_msg void OnInitialState();
+	afx_msg void OnUpdateInitialState(CCmdUI* pCmdUI);
 };

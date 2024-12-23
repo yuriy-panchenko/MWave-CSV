@@ -17,9 +17,30 @@ namespace seq
 	{
 	}
 
+	leaf::~leaf()
+	{
+		for (auto pL : leaves)
+			delete pL;
+	}
+
 	void leaf::set_indexes(std::vector<INT_PTR>&& v)
 	{
 		indexes = std::move(v);
+	}
+
+	leaf& leaf::operator=(leaf&& oth)
+	{
+		pat = oth.pat;
+		hItem = oth.hItem;
+		pPrev = oth.pPrev;
+		for (auto pL : leaves)
+			delete pL;
+		leaves = std::move(oth.leaves);
+		indexes = std::move(oth.indexes);
+
+		oth.leaves.clear();
+
+		return *this;
 	}
 
 	mwave::Pattern leaf::get_pattern()const
@@ -34,9 +55,10 @@ namespace seq
 
 		const auto id{ get_chain() };
 
-		if (id.size() == 1)
+		if (pPrev)
+			indexes.reserve(pPrev->get_indexes().size());
+		else
 			indexes.reserve(mws.size() / 32);
-		else indexes.reserve(pPrev->get_indexes().size());
 
 		//auto is_same_chain = [&](INT_PTR index)->bool
 		//	{
@@ -65,6 +87,8 @@ namespace seq
 				if (mws[i] == id.front()/* && is_same_chain(i)*/)
 					indexes.push_back(i);
 
+		indexes.shrink_to_fit();
+
 		if (indexes.size() < 2)
 			return false;
 
@@ -73,16 +97,18 @@ namespace seq
 			const mwave::Pattern oth{ ch };
 			if (pat.is_m() ^ oth.is_m())
 			{
-				leaf l{ oth, this };
-				if (l.grow(mws))
-					leaves.push_back(std::move(l));
+				auto pL{ new leaf{ oth, this } };
+				if (pL->grow(mws))
+					leaves.push_back(pL);
+				else
+					delete pL;
 			}
 		}
 
 		return true;
 	}
 
-	std::vector<leaf>& leaf::get_leaves()
+	std::vector<leaf*>& leaf::get_leaves()
 	{
 		return leaves;
 	}
@@ -130,7 +156,7 @@ namespace seq
 		return pRet;
 	}
 
-	const std::vector<leaf>& leaf::get_leaves() const
+	const std::vector<leaf*>& leaf::get_leaves() const
 	{
 		return leaves;
 	}
@@ -144,24 +170,24 @@ namespace seq
 	{
 		size_t count{};
 
-		for (auto& l : leaves)
-			count = max(count, l.get_max_depth());
+		for (auto pL : leaves)
+			count = max(count, pL->get_max_depth());
 
 		return count + 1;
 	}
-	
+
 	HTREEITEM leaf::get_handle() const
 	{
 		return hItem;
 	}
-	
+
 	const leaf* leaf::find(HTREEITEM h) const
 	{
 		if (hItem == h)
 			return this;
-		
-		for (auto& l : leaves)
-			if (auto pLeaf{ l.find(h) })
+
+		for (auto pL : leaves)
+			if (auto pLeaf{ pL->find(h) })
 				return pLeaf;
 
 		return nullptr;
