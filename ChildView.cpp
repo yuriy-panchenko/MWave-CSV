@@ -335,8 +335,8 @@ CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
 		else ret.Loss += -diff;
 	}
 
-	assert(ret.Profit <= ret.PProfit);
-	assert(ret.Loss <= ret.maxDD);
+	ASSERT(ret.Profit <= ret.PProfit);
+	ASSERT(ret.Loss <= ret.maxDD);
 
 	return ret;
 }
