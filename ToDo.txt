@@ -1,0 +1,6 @@
+bar candles chart
+	scale
+	timeline
+
+button reload file
+recent files list

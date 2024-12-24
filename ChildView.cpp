@@ -63,132 +63,27 @@ void CChildView::OnPaint()
 {
 	CPaintDC dc(this); // device context for painting
 
-	// TODO: Add your message handler code here
+	if (!m_rInfo.IsRectEmpty())
+	{
+		auto rect{ m_rInfo };
+		CBitmap bmp;
+		bmp.CreateCompatibleBitmap(&dc, rect.Width(), rect.Height());
 
-	// Do not call CWnd::OnPaint() for painting messages
+		CDC memDC;
+		memDC.CreateCompatibleDC(&dc);
+		auto oldBmp{ memDC.SelectObject(bmp) };
+
+		dc.BitBlt(m_rInfo.left, m_rInfo.top, m_rInfo.Width(), m_rInfo.Height(), &memDC, 0, 0, SRCCOPY);
+
+		memDC.SelectObject(oldBmp);
+	}
 }
 
 void CChildView::OnFileOpen()
 {
 	CFileDialog dlg{ TRUE,_T(".csv"),NULL,6UL,_T("MWave data files (*.csv)|*.csv||"),this };
 	if (dlg.DoModal() == IDOK)
-	{
-		theApp.BeginWaitCursor();
-		const auto filename{ dlg.GetPathName() };
-
-		auto to_pattern = [](const MWAVE& mw)->mwave::Pattern
-			{
-				double prices[5];
-
-				for (size_t i = 0; i < 5; ++i)
-					prices[i] = mw.mw[i].value;
-
-				return mwave::Pattern::FromPrices(prices);
-			};
-
-		csv::file f;
-		if (f.Read(filename.GetString()))
-		{
-			theApp.GetMainWnd()->SetWindowText(CString{ theApp.m_pszAppName } + _T(" - ") + std::filesystem::path{ filename.GetString() }.filename().c_str());
-			auto& lines{ f.GetLines() };
-
-			m_ctrlTree.DeleteAllItems();
-			m_ctrlList.DeleteAllItems();
-			m_MWaves.clear();// .RemoveAll();
-			m_Patterns.clear();// .RemoveAll();
-			m_Quotes.clear();
-			m_MWaves.reserve(lines.size());
-			m_Patterns.reserve(lines.size());
-
-			if (f.GetColumns().size() == 16)
-			{
-				auto line_to_mwave = [](const auto& line)->MWAVE
-					{
-						MWAVE ret;
-						auto ind{ 0 };
-						auto iter{ line.begin() };
-
-						auto next_value = [&iter]()
-							{
-								std::wstring ret{ iter->begin(), iter->end() };
-								++iter;
-								return ret;
-							};
-
-						for (INT_PTR i = 0; i < 5; i++)
-						{
-							ret.mw[i].index = _ttoi(next_value().c_str());
-							ret.mw[i].value = _ttof(next_value().c_str());
-						}
-
-						ret.leg.index = _ttoi(next_value().c_str());
-						ret.leg.value = _ttof(next_value().c_str());
-						ret.next_leg.index = _ttoi(next_value().c_str());
-						ret.next_leg.value = _ttof(next_value().c_str());
-						ret.PProfit = _ttof(next_value().c_str());
-						ret.maxDD = _ttof(next_value().c_str());
-
-						return ret;
-					};
-
-				for (auto& l : lines)
-					if (l.size() == 16)
-						m_MWaves.push_back(line_to_mwave(l));
-			}
-			else if (f.GetColumns().size() == 9)
-			{
-				auto make_time = [](const std::wstring_view& date, const std::wstring_view& time)->CTime
-					{
-						const auto itDate{ date.begin() }, itTime{ time.begin() };
-						const int
-							year{ std::stoi(std::wstring{ itDate, itDate + 4 }) },
-							month{ std::stoi(std::wstring{ itDate + 5, itDate + 7 }) },
-							day{ std::stoi(std::wstring{ itDate + 8, itDate + 10 }) },
-							hour{ std::stoi(std::wstring{ itTime, itTime + 2 }) },
-							min{ std::stoi(std::wstring{ itTime + 3, itTime + 5 }) },
-							sec{ std::stoi(std::wstring{ itTime + 6, itTime + 8 }) };
-						return { year, month, day, hour, min, sec };
-					};
-
-				auto line_to_quote = [make_time](const auto& line)->QUOTE_REC
-					{
-						QUOTE_REC ret;
-						ret.time = make_time(line[0], line[1]);
-						ret.open = std::stod(std::wstring{ line[2].begin(), line[2].end() });
-						ret.high = std::stod(std::wstring{ line[3].begin(), line[3].end() });
-						ret.low = std::stod(std::wstring{ line[4].begin(), line[4].end() });
-						ret.close = std::stod(std::wstring{ line[5].begin(), line[5].end() });
-						ret.volTick = std::stoi(std::wstring{ line[6].begin(), line[6].end() });
-						ret.volume = std::stoi(std::wstring{ line[7].begin(), line[7].end() });
-						ret.spread = std::stoi(std::wstring{ line[8].begin(), line[8].end() });
-						return ret;
-					};
-				CSRevParamDlg dlg{ (int)theApp.GetProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, 7), this };
-				theApp.EndWaitCursor();
-				if (dlg.DoModal() == IDOK)
-				{
-					m_Quotes.reserve(lines.size());
-
-					for (auto& l : lines)
-						if (l.size() == 9)
-							m_Quotes.push_back(line_to_quote(l));
-
-					Quotes2MWave(dlg.Period);
-					theApp.WriteProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, dlg.Period);
-				}
-				theApp.BeginWaitCursor();
-			}
-
-			for (const auto& mw : m_MWaves)
-				m_Patterns.push_back(to_pattern(mw));
-
-			m_MWaves.shrink_to_fit();
-			m_Patterns.shrink_to_fit();
-		}
-
-		LoadTree();
-		theApp.EndWaitCursor();
-	}
+		LoadFile(dlg.GetPathName().GetString());
 }
 
 
@@ -201,7 +96,7 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 
 	if (!m_ctrlTree.Create(WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP
-		| TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_LINESATROOT,
+		| TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_LINESATROOT /*| TVS_CHECKBOXES*/,
 		{}, this, ID_TREE_CTRL))
 		return -1;
 
@@ -215,7 +110,8 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	icon_id_Leaf = m_imgList.Add(theApp.LoadIcon(IDI_LEAF2));
 	m_ctrlTree.SetImageList(&m_imgList, TVSIL_NORMAL);
 
-	m_ctrlList.SetExtendedStyle(LVS_EX_AUTOSIZECOLUMNS | LVS_EX_BORDERSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_ctrlTree.SetExtendedStyle(TVS_EX_PARTIALCHECKBOXES | TVS_EX_DOUBLEBUFFER, TVS_EX_PARTIALCHECKBOXES | TVS_EX_DOUBLEBUFFER);
+	m_ctrlList.SetExtendedStyle(LVS_EX_AUTOSIZECOLUMNS | LVS_EX_BORDERSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_CHECKBOXES);
 
 	int col{ 0 };
 	m_ctrlList.InsertColumn(col++, _T("Num"), LVCFMT_RIGHT);
@@ -239,13 +135,19 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 	// TODO: Add your message handler code here and/or call default
 	CRect rect;
 	GetClientRect(rect);
+
+	m_rInfo = rect;
+	m_rInfo.bottom = rect.top + /*25*/0;
+
 	const int x{ rect.Width() / 4 };
 
 	auto r{ rect };
+	r.top = m_rInfo.bottom;
 	r.right = x;
 	m_ctrlTree.MoveWindow(r);
 
 	r = rect;
+	r.top = m_rInfo.bottom;
 	r.left = x;
 	m_ctrlList.MoveWindow(r);
 
@@ -311,7 +213,7 @@ void CChildView::LoadTree()
 
 	for (auto& pat : m_Tree)
 		Insert(pat);
-	
+
 	m_ctrlTree.SetRedraw();
 
 	LoadList();
@@ -365,7 +267,7 @@ void CChildView::Quotes2MWave(const int period)
 	for (const auto& rec : m_Quotes)
 		*itOpen++ = rec.open,
 		*itHigh++ = rec.high,
-		* itLow++ = rec.low;
+		*itLow++ = rec.low;
 
 	sRev.Apply(open, high, low);
 
@@ -403,6 +305,124 @@ void CChildView::Quotes2MWave(const int period)
 				}
 			}
 	}
+}
+
+void CChildView::LoadFile(const std::filesystem::path& filename)
+{
+	theApp.BeginWaitCursor();
+
+	auto to_pattern = [](const MWAVE& mw)->mwave::Pattern
+		{
+			double prices[5];
+
+			for (size_t i = 0; i < 5; ++i)
+				prices[i] = mw.mw[i].value;
+
+			return mwave::Pattern::FromPrices(prices);
+		};
+
+	csv::file f;
+	if (f.Read(filename))
+	{
+		theApp.GetMainWnd()->SetWindowText(CString{ theApp.m_pszAppName } + _T(" - ") + filename.filename().c_str());
+		auto& lines{ f.GetLines() };
+
+		m_ctrlTree.DeleteAllItems();
+		m_ctrlList.DeleteAllItems();
+		m_MWaves.clear();// .RemoveAll();
+		m_Patterns.clear();// .RemoveAll();
+		m_Quotes.clear();
+		m_MWaves.reserve(lines.size());
+		m_Patterns.reserve(lines.size());
+
+		if (f.GetColumns().size() == 16)
+		{
+			auto line_to_mwave = [](const auto& line)->MWAVE
+				{
+					MWAVE ret;
+					auto ind{ 0 };
+					auto iter{ line.begin() };
+
+					auto next_value = [&iter]()
+						{
+							std::wstring ret{ iter->begin(), iter->end() };
+							++iter;
+							return ret;
+						};
+
+					for (INT_PTR i = 0; i < 5; i++)
+					{
+						ret.mw[i].index = _ttoi(next_value().c_str());
+						ret.mw[i].value = _ttof(next_value().c_str());
+					}
+
+					ret.leg.index = _ttoi(next_value().c_str());
+					ret.leg.value = _ttof(next_value().c_str());
+					ret.next_leg.index = _ttoi(next_value().c_str());
+					ret.next_leg.value = _ttof(next_value().c_str());
+					ret.PProfit = _ttof(next_value().c_str());
+					ret.maxDD = _ttof(next_value().c_str());
+
+					return ret;
+				};
+
+			for (auto& l : lines)
+				if (l.size() == 16)
+					m_MWaves.push_back(line_to_mwave(l));
+		}
+		else if (f.GetColumns().size() == 9)
+		{
+			auto make_time = [](const std::wstring_view& date, const std::wstring_view& time)->CTime
+				{
+					const auto itDate{ date.begin() }, itTime{ time.begin() };
+					const int
+						year{ std::stoi(std::wstring{ itDate, itDate + 4 }) },
+						month{ std::stoi(std::wstring{ itDate + 5, itDate + 7 }) },
+						day{ std::stoi(std::wstring{ itDate + 8, itDate + 10 }) },
+						hour{ std::stoi(std::wstring{ itTime, itTime + 2 }) },
+						min{ std::stoi(std::wstring{ itTime + 3, itTime + 5 }) },
+						sec{ std::stoi(std::wstring{ itTime + 6, itTime + 8 }) };
+					return { year, month, day, hour, min, sec };
+				};
+
+			auto line_to_quote = [make_time](const auto& line)->QUOTE_REC
+				{
+					QUOTE_REC ret;
+					ret.time = make_time(line[0], line[1]);
+					ret.open = std::stod(std::wstring{ line[2].begin(), line[2].end() });
+					ret.high = std::stod(std::wstring{ line[3].begin(), line[3].end() });
+					ret.low = std::stod(std::wstring{ line[4].begin(), line[4].end() });
+					ret.close = std::stod(std::wstring{ line[5].begin(), line[5].end() });
+					ret.volTick = std::stoi(std::wstring{ line[6].begin(), line[6].end() });
+					ret.volume = std::stoi(std::wstring{ line[7].begin(), line[7].end() });
+					ret.spread = std::stoi(std::wstring{ line[8].begin(), line[8].end() });
+					return ret;
+				};
+			CSRevParamDlg dlg{ (int)theApp.GetProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, 7), this };
+			theApp.EndWaitCursor();
+			if (dlg.DoModal() == IDOK)
+			{
+				m_Quotes.reserve(lines.size());
+
+				for (auto& l : lines)
+					if (l.size() == 9)
+						m_Quotes.push_back(line_to_quote(l));
+
+				Quotes2MWave(dlg.Period);
+				theApp.WriteProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, dlg.Period);
+			}
+			theApp.BeginWaitCursor();
+		}
+
+		for (const auto& mw : m_MWaves)
+			m_Patterns.push_back(to_pattern(mw));
+
+		m_MWaves.shrink_to_fit();
+		m_Patterns.shrink_to_fit();
+	}
+
+	LoadTree();
+	theApp.EndWaitCursor();
 }
 
 void CChildView::LoadList()

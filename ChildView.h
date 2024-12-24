@@ -69,12 +69,14 @@ private:
 	const seq::leaf* FindLeaf(HTREEITEM)const;
 	MWInfo GetInfo(const seq::leaf& l)const;
 	void Quotes2MWave(int period);
+	void LoadFile(const std::filesystem::path&);
 
 private:
 	std::vector<MWAVE> m_MWaves;
 	seq::chain m_Patterns;
 	seq::leaf m_Tree[32];
 	std::vector<QUOTE_REC> m_Quotes;
+	CRect m_rInfo;
 
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
