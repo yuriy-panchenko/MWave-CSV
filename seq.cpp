@@ -60,19 +60,6 @@ namespace seq
 		else
 			indexes.reserve(mws.size() / 32);
 
-		//auto is_same_chain = [&](INT_PTR index)->bool
-		//	{
-		//		if (index < INT_PTR(id.size() - 1))
-		//			return false;
-
-		//		auto const irFrom{ mws.crbegin() + (mws.size() - index - 1) },
-		//			irTo{ irFrom + id.size() };
-
-		//		ASSERT(irFrom < mws.crend());
-
-		//		return chain{ irFrom, irTo } == id;
-		//	};
-
 		if (pPrev)
 			for (auto ind : pPrev->get_indexes())
 			{

@@ -74,14 +74,22 @@ void CChildView::OnFileOpen()
 		m_Patterns.clear();// .RemoveAll();
 		const auto filename{ dlg.GetPathName() };
 
-		/*{
-			csv::file f;
-			if (f.Read(filename.GetString()))
-			{
-			}
-		}*/
+		//{
+		//	csv::file f;
+		//	if (f.Read(filename.GetString()))
+		//	{
+		//		if (f.GetColumns().size() == 16)
+		//		{
+		//		}
+		//		else if (f.GetColumns().size() == 9)
+		//		{
 
-		CStringArray items;
+		//		}
+		//		//else return;
+		//	}
+		//}
+
+		CStringArray lines;
 		{
 			CFile file;
 			if (file.Open(filename, CFile::modeRead | CFile::shareDenyNone))
@@ -90,7 +98,7 @@ void CChildView::OnFileOpen()
 				CString str;
 				while (file.GetPosition() < file.GetLength())
 					if (ar.ReadString(str))
-						items.Add(str);
+						lines.Add(str);
 			}
 		}
 
@@ -139,11 +147,11 @@ void CChildView::OnFileOpen()
 				return mwave::Pattern::FromPrices(prices);
 			};
 
-		if (items.IsEmpty())
+		if (lines.IsEmpty())
 			MessageBox(_T("No MWaves:("));
 		else
 		{
-			tokanize(items[0]);
+			tokanize(lines[0]);
 			const auto column_count{ item.GetSize() };
 			if (column_count != 16)
 			{
@@ -151,13 +159,13 @@ void CChildView::OnFileOpen()
 				return;
 			}
 
-			m_MWaves.reserve(items.GetSize());
-			m_Patterns.reserve(items.GetSize());
+			m_MWaves.reserve(lines.GetSize());
+			m_Patterns.reserve(lines.GetSize());
 			m_MWaves.push_back(items_to_mwave());
 
-			for (INT_PTR i = 1; i < items.GetSize(); ++i)
+			for (INT_PTR i = 1; i < lines.GetSize(); ++i)
 			{
-				tokanize(items[i]);
+				tokanize(lines[i]);
 				if (item.GetSize() == column_count)
 					m_MWaves.push_back(items_to_mwave());
 			}
@@ -183,7 +191,7 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 
 	if (!m_ctrlTree.Create(WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP
-		| TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS,
+		| TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_LINESATROOT,
 		{}, this, ID_TREE_CTRL))
 		return -1;
 
@@ -197,7 +205,8 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	icon_id_Leaf = m_imgList.Add(theApp.LoadIcon(IDI_LEAF2));
 	m_ctrlTree.SetImageList(&m_imgList, TVSIL_NORMAL);
 
-	//m_ctrlTree.SetExtendedStyle()
+	m_ctrlList.SetExtendedStyle(LVS_EX_AUTOSIZECOLUMNS | LVS_EX_BORDERSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+
 	int col{ 0 };
 	m_ctrlList.InsertColumn(col++, _T("Num"), LVCFMT_RIGHT);
 	m_ctrlList.InsertColumn(col++, _T("Pattern"), LVCFMT_CENTER);
@@ -208,8 +217,9 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ctrlList.InsertColumn(col++, _T("Profit"));
 	m_ctrlList.InsertColumn(col++, _T("Loss"));
 	m_ctrlList.InsertColumn(col++, _T("Diff"));
+	m_ctrlList.InsertColumn(col++, _T("AvDiff"));
 
-	LoadTree();
+	//LoadTree();
 
 	return 0;
 }
@@ -242,7 +252,7 @@ void CChildView::OnTreeSelChanged(NMHDR* pHDR, LRESULT* pResult)
 void CChildView::Insert(seq::leaf& l, HTREEITEM hParent)
 {
 	CString str;
-	str.Format(_T("#%d {%s}, count %I64u, leaves %I64u, depth %I64u"),
+	str.Format(_T("%d {%s}, count %I64u, leaves %I64u, depth %I64u"),
 		l.get_pattern().get_id() + 1,
 		l.get_pattern().to_wstring().c_str(),
 		l.get_indexes().size(),
@@ -325,10 +335,8 @@ CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
 		else ret.Loss += -diff;
 	}
 
-	/*auto count{ l.get_indexes().size() };
-	ret.PProfit /= count;
-	ret.maxDD /= count;
-	ret.Profit /= count;*/
+	assert(ret.Profit <= ret.PProfit);
+	assert(ret.Loss <= ret.maxDD);
 
 	return ret;
 }
@@ -352,7 +360,7 @@ void CChildView::LoadList()
 
 			item.mask = LVIF_TEXT;
 			++item.iSubItem;
-			str.Format(_T("#%d {%s} "), (char)l.get_pattern(), l.get_pattern().to_wstring().c_str());
+			str.Format(_T("%d {%s} "), (char)l.get_pattern() + 1, l.get_pattern().to_wstring().c_str());
 			item.pszText = (LPTSTR)(LPCTSTR)str;
 			m_ctrlList.SetItem(&item);
 
@@ -388,12 +396,17 @@ void CChildView::LoadList()
 			++item.iSubItem;
 			if (info.Loss == .0)
 				str = _T("0");
-			else str.Format(_T("%.5g (% .1f%%)"), info.Loss, info.Loss * 100. / (info.Profit + info.Loss));
+			else str.Format(_T("%.5g"), info.Loss/*, info.Loss * 100. / (info.Profit + info.Loss)*/);
 			item.pszText = (LPTSTR)(LPCTSTR)str;
 			m_ctrlList.SetItem(&item);
 
 			++item.iSubItem;
 			str.Format(_T("%.5g"), info.Profit - info.Loss);
+			item.pszText = (LPTSTR)(LPCTSTR)str;
+			m_ctrlList.SetItem(&item);
+
+			++item.iSubItem;
+			str.Format(_T("%.5g"), (info.Profit - info.Loss) / l.get_indexes().size());
 			item.pszText = (LPTSTR)(LPCTSTR)str;
 			m_ctrlList.SetItem(&item);
 
