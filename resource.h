@@ -12,6 +12,10 @@
 #define IDI_W_WAVE                      311
 #define IDI_LEAF                        312
 #define IDI_LEAF2                       313
+#define IDD_SREVERSAL_PARAM_DLG         314
+#define IDC_PERIOD                      1000
+#define IDC_SPIN1                       1001
+#define IDC_PERIOD_SPIN                 1001
 #define ID_FILE_OPEN32771               32771
 #define ID_BUTTON32772                  32772
 #define ID_INITIAL_STATE                32772
@@ -20,9 +24,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        314
+#define _APS_NEXT_RESOURCE_VALUE        316
 #define _APS_NEXT_COMMAND_VALUE         32773
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           312
 #endif
 #endif

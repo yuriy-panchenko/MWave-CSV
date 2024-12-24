@@ -18,6 +18,13 @@ struct MWAVE
 	double PProfit, maxDD;
 };
 
+struct QUOTE_REC
+{
+	CTime time;
+	double open, high, low, close;
+	int volTick, volume, spread;
+};
+
 // CChildView window
 
 class CChildView : public CWnd
@@ -50,6 +57,8 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnTreeSelChanged(NMHDR*, LRESULT*);
+	afx_msg void OnInitialState();
+	afx_msg void OnUpdateInitialState(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -59,16 +68,15 @@ private:
 	void UpdateTree();
 	const seq::leaf* FindLeaf(HTREEITEM)const;
 	MWInfo GetInfo(const seq::leaf& l)const;
+	void Quotes2MWave(int period);
 
 private:
 	std::vector<MWAVE> m_MWaves;
 	seq::chain m_Patterns;
 	seq::leaf m_Tree[32];
+	std::vector<QUOTE_REC> m_Quotes;
 
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
-public:
-	afx_msg void OnInitialState();
-	afx_msg void OnUpdateInitialState(CCmdUI* pCmdUI);
 };

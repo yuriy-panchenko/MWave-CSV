@@ -6,6 +6,7 @@
 #include "framework.h"
 #include "MWave CSV.h"
 #include "ChildView.h"
+#include "CSRevParamDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -14,6 +15,9 @@
 #ifdef DEBUG
 #endif // DEBUG
 #define DEBUG_SINGLE_THREAD
+
+#define SECTION_SETTINGS	_T("Settings")
+#define ENTRY_PERIOD			_T("Period")
 
 // CChildView
 int icon_id_M_Wave, icon_id_W_Wave, icon_id_Leaf;
@@ -70,72 +74,7 @@ void CChildView::OnFileOpen()
 	if (dlg.DoModal() == IDOK)
 	{
 		theApp.BeginWaitCursor();
-		m_MWaves.clear();// .RemoveAll();
-		m_Patterns.clear();// .RemoveAll();
 		const auto filename{ dlg.GetPathName() };
-
-		//{
-		//	csv::file f;
-		//	if (f.Read(filename.GetString()))
-		//	{
-		//		if (f.GetColumns().size() == 16)
-		//		{
-		//		}
-		//		else if (f.GetColumns().size() == 9)
-		//		{
-
-		//		}
-		//		//else return;
-		//	}
-		//}
-
-		CStringArray lines;
-		{
-			CFile file;
-			if (file.Open(filename, CFile::modeRead | CFile::shareDenyNone))
-			{
-				CArchive ar{ &file,CArchive::load };
-				CString str;
-				while (file.GetPosition() < file.GetLength())
-					if (ar.ReadString(str))
-						lines.Add(str);
-			}
-		}
-
-		CStringArray item;
-
-		auto tokanize = [&item](const CString& s)->void
-			{
-				item.RemoveAll();
-				int pos{ 0 };
-				while (true)
-				{
-					auto res{ s.Tokenize(_T("\t"), pos) };
-					if (pos > -1)
-						item.Add(res);
-					else break;
-				}
-			};
-
-		auto items_to_mwave = [&item]()->MWAVE
-			{
-				MWAVE ret;
-				auto ind{ 0 };
-
-				for (INT_PTR i = 0; i < 5; i++)
-				{
-					ret.mw[i].index = _ttoi(item[ind++]);
-					ret.mw[i].value = _ttof(item[ind++]);
-				}
-				ret.leg.index = _ttoi(item[ind++]);
-				ret.leg.value = _ttof(item[ind++]);
-				ret.next_leg.index = _ttoi(item[ind++]);
-				ret.next_leg.value = _ttof(item[ind++]);
-				ret.PProfit = _ttof(item[ind++]);
-				ret.maxDD = _ttof(item[ind++]);
-
-				return ret;
-			};
 
 		auto to_pattern = [](const MWAVE& mw)->mwave::Pattern
 			{
@@ -147,33 +86,104 @@ void CChildView::OnFileOpen()
 				return mwave::Pattern::FromPrices(prices);
 			};
 
-		if (lines.IsEmpty())
-			MessageBox(_T("No MWaves:("));
-		else
+		csv::file f;
+		if (f.Read(filename.GetString()))
 		{
-			tokanize(lines[0]);
-			const auto column_count{ item.GetSize() };
-			if (column_count != 16)
+			theApp.GetMainWnd()->SetWindowText(CString{ theApp.m_pszAppName } + _T(" - ") + std::filesystem::path{ filename.GetString() }.filename().c_str());
+			auto& lines{ f.GetLines() };
+
+			m_ctrlTree.DeleteAllItems();
+			m_ctrlList.DeleteAllItems();
+			m_MWaves.clear();// .RemoveAll();
+			m_Patterns.clear();// .RemoveAll();
+			m_Quotes.clear();
+			m_MWaves.reserve(lines.size());
+			m_Patterns.reserve(lines.size());
+
+			if (f.GetColumns().size() == 16)
 			{
-				MessageBox(_T("Wrong file format!"));
-				return;
+				auto line_to_mwave = [](const auto& line)->MWAVE
+					{
+						MWAVE ret;
+						auto ind{ 0 };
+						auto iter{ line.begin() };
+
+						auto next_value = [&iter]()
+							{
+								std::wstring ret{ iter->begin(), iter->end() };
+								++iter;
+								return ret;
+							};
+
+						for (INT_PTR i = 0; i < 5; i++)
+						{
+							ret.mw[i].index = _ttoi(next_value().c_str());
+							ret.mw[i].value = _ttof(next_value().c_str());
+						}
+
+						ret.leg.index = _ttoi(next_value().c_str());
+						ret.leg.value = _ttof(next_value().c_str());
+						ret.next_leg.index = _ttoi(next_value().c_str());
+						ret.next_leg.value = _ttof(next_value().c_str());
+						ret.PProfit = _ttof(next_value().c_str());
+						ret.maxDD = _ttof(next_value().c_str());
+
+						return ret;
+					};
+
+				for (auto& l : lines)
+					if (l.size() == 16)
+						m_MWaves.push_back(line_to_mwave(l));
 			}
-
-			m_MWaves.reserve(lines.GetSize());
-			m_Patterns.reserve(lines.GetSize());
-			m_MWaves.push_back(items_to_mwave());
-
-			for (INT_PTR i = 1; i < lines.GetSize(); ++i)
+			else if (f.GetColumns().size() == 9)
 			{
-				tokanize(lines[i]);
-				if (item.GetSize() == column_count)
-					m_MWaves.push_back(items_to_mwave());
+				auto make_time = [](const std::wstring_view& date, const std::wstring_view& time)->CTime
+					{
+						const auto itDate{ date.begin() }, itTime{ time.begin() };
+						const int
+							year{ std::stoi(std::wstring{ itDate, itDate + 4 }) },
+							month{ std::stoi(std::wstring{ itDate + 5, itDate + 7 }) },
+							day{ std::stoi(std::wstring{ itDate + 8, itDate + 10 }) },
+							hour{ std::stoi(std::wstring{ itTime, itTime + 2 }) },
+							min{ std::stoi(std::wstring{ itTime + 3, itTime + 5 }) },
+							sec{ std::stoi(std::wstring{ itTime + 6, itTime + 8 }) };
+						return { year, month, day, hour, min, sec };
+					};
+
+				auto line_to_quote = [make_time](const auto& line)->QUOTE_REC
+					{
+						QUOTE_REC ret;
+						ret.time = make_time(line[0], line[1]);
+						ret.open = std::stod(std::wstring{ line[2].begin(), line[2].end() });
+						ret.high = std::stod(std::wstring{ line[3].begin(), line[3].end() });
+						ret.low = std::stod(std::wstring{ line[4].begin(), line[4].end() });
+						ret.close = std::stod(std::wstring{ line[5].begin(), line[5].end() });
+						ret.volTick = std::stoi(std::wstring{ line[6].begin(), line[6].end() });
+						ret.volume = std::stoi(std::wstring{ line[7].begin(), line[7].end() });
+						ret.spread = std::stoi(std::wstring{ line[8].begin(), line[8].end() });
+						return ret;
+					};
+				CSRevParamDlg dlg{ (int)theApp.GetProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, 7), this };
+				theApp.EndWaitCursor();
+				if (dlg.DoModal() == IDOK)
+				{
+					m_Quotes.reserve(lines.size());
+
+					for (auto& l : lines)
+						if (l.size() == 9)
+							m_Quotes.push_back(line_to_quote(l));
+
+					Quotes2MWave(dlg.Period);
+					theApp.WriteProfileInt(SECTION_SETTINGS, ENTRY_PERIOD, dlg.Period);
+				}
+				theApp.BeginWaitCursor();
 			}
 
 			for (const auto& mw : m_MWaves)
-			{
 				m_Patterns.push_back(to_pattern(mw));
-			}
+
+			m_MWaves.shrink_to_fit();
+			m_Patterns.shrink_to_fit();
 		}
 
 		LoadTree();
@@ -219,7 +229,7 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ctrlList.InsertColumn(col++, _T("Diff"));
 	m_ctrlList.InsertColumn(col++, _T("AvDiff"));
 
-	//LoadTree();
+	PostMessage(WM_COMMAND, ID_FILE_OPEN);
 
 	return 0;
 }
@@ -296,12 +306,12 @@ void CChildView::UpdateTree()
 void CChildView::LoadTree()
 {
 	m_ctrlTree.SetRedraw(FALSE);
-	m_ctrlTree.DeleteAllItems();
 
 	UpdateTree();
 
 	for (auto& pat : m_Tree)
 		Insert(pat);
+	
 	m_ctrlTree.SetRedraw();
 
 	LoadList();
@@ -335,10 +345,64 @@ CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
 		else ret.Loss += -diff;
 	}
 
-	ASSERT(ret.Profit <= ret.PProfit);
-	ASSERT(ret.Loss <= ret.maxDD);
+	//	ASSERT(ret.Profit <= ret.PProfit);
+	//	ASSERT(ret.Loss <= ret.maxDD);
 
 	return ret;
+}
+
+void CChildView::Quotes2MWave(const int period)
+{
+	const auto rec_count{ m_Quotes.size() };
+	const auto empty_value{ .0 };
+
+	mwave::SReversal sRev{ period };
+	sRev.Init(rec_count, empty_value);
+
+	std::vector<double> open(rec_count), high(rec_count), low(rec_count);
+	auto itOpen{ open.begin() }, itHigh{ high.begin() }, itLow{ low.begin() };
+
+	for (const auto& rec : m_Quotes)
+		*itOpen++ = rec.open,
+		*itHigh++ = rec.high,
+		* itLow++ = rec.low;
+
+	sRev.Apply(open, high, low);
+
+	MWAVE mw;
+	mw.leg.index = mw.next_leg.index = -1;
+	mw.PProfit = mw.maxDD = .0;
+
+	auto& bufs{ sRev.GetBuffers() };
+
+	for (int i = 0; i < (int)bufs.size(); ++i)
+	{
+		auto& item{ bufs[i] };
+		if (item.Leg == empty_value)
+			continue;
+
+		mw.leg = mw.next_leg;
+
+		mw.next_leg.index = i;
+		mw.next_leg.value = item.Leg;
+
+		if (mw.leg.index == -1)
+			continue;
+
+		int iPat{ 4 };
+
+		for (int u = i - 1; u > -1; --u)
+			if (bufs[u].Peaks != empty_value)
+			{
+				mw.mw[iPat].index = u;
+				mw.mw[iPat].value = bufs[u].Peaks;
+				if (--iPat < 0)
+				{
+					m_MWaves.push_back(mw);
+					break;
+				}
+			}
+	}
 }
 
 void CChildView::LoadList()

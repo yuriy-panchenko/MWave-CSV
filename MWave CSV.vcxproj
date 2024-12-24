@@ -190,6 +190,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ChildView.h" />
+    <ClInclude Include="CSRevParamDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MWave CSV.h" />
@@ -200,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChildView.cpp" />
+    <ClCompile Include="CSRevParamDlg.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MWave CSV.cpp" />
     <ClCompile Include="pch.cpp">
