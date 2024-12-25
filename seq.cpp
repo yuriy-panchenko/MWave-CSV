@@ -4,9 +4,7 @@
 namespace seq
 {
 	leaf::leaf(mwave::Pattern mw)
-		:pat{ mw }
-		, hItem{ NULL }
-		, pPrev{ nullptr }
+		:leaf{ mw, nullptr }
 	{
 	}
 
@@ -14,6 +12,7 @@ namespace seq
 		:pat{ mw }
 		, hItem{ NULL }
 		, pPrev{ pParent }
+		//, isSelected{ false }
 	{
 	}
 
@@ -37,6 +36,7 @@ namespace seq
 			delete pL;
 		leaves = std::move(oth.leaves);
 		indexes = std::move(oth.indexes);
+		isSelected = oth.isSelected;
 
 		oth.leaves.clear();
 
@@ -110,6 +110,25 @@ namespace seq
 		hItem = h;
 	}
 
+	void leaf::select(bool b)
+	{
+		isSelected = b;
+		for (auto& l : leaves)
+			l->select(b);
+	}
+
+	leaf* leaf::find(HTREEITEM h)
+	{
+		if (hItem == h)
+			return this;
+
+		for (auto pL : leaves)
+			if (auto pLeaf{ pL->find(h) })
+				return pLeaf;
+
+		return nullptr;
+	}
+
 	chain leaf::get_chain()const
 	{
 		if (pPrev)
@@ -141,6 +160,11 @@ namespace seq
 				break;
 
 		return pRet;
+	}
+
+	const leaf* leaf::parent() const
+	{
+		return pPrev;
 	}
 
 	const std::vector<leaf*>& leaf::get_leaves() const
@@ -178,5 +202,43 @@ namespace seq
 				return pLeaf;
 
 		return nullptr;
+	}
+
+	bool leaf::is_selected() const
+	{
+		return isSelected;
+	}
+
+	//	0	unticked
+	//	1	undeter
+	//	2	undeter
+
+	leaf::cbstate leaf::get_icon_state() const
+	{
+		if (leaves.empty())
+			return isSelected ? cbstate::selected : cbstate::unselected;
+
+		size_t iSelected{ 0 }, iUnselected{ 0 };
+
+		for (auto& l : leaves)
+			switch (l->get_icon_state())
+			{
+			case cbstate::selected:++iSelected; break;
+			case cbstate::unselected:++iUnselected; break;
+			}
+
+		const bool
+			all_selected{ iSelected == leaves.size() },
+			all_unselected{ iUnselected == leaves.size() };
+
+		assert(!(all_selected && all_unselected));
+
+		if (all_selected)
+			return cbstate::selected;
+
+		if (all_unselected)
+			return cbstate::unselected;
+
+		return cbstate::mix;
 	}
 }

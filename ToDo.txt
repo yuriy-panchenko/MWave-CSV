@@ -1,6 +1,11 @@
+*tickboxes
+
 bar candles chart
 	scale
 	timeline
 
 button reload file
 recent files list
+on space bar down tick boxes
+PProfit/maxDD for price csv
+save/load project

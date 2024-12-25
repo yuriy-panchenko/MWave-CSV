@@ -19,6 +19,8 @@
 #define SECTION_SETTINGS	_T("Settings")
 #define ENTRY_PERIOD			_T("Period")
 
+#define WM_ITEM_CHECKED	(WM_USER+0x0001)
+
 // CChildView
 int icon_id_M_Wave, icon_id_W_Wave, icon_id_Leaf;
 
@@ -30,16 +32,20 @@ CChildView::~CChildView()
 {
 }
 
-
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_WM_PAINT()
 	ON_COMMAND(ID_FILE_OPEN, &CChildView::OnFileOpen)
 	ON_WM_CREATE()
 	ON_WM_ERASEBKGND()
 	ON_NOTIFY(TVN_SELCHANGED, ID_TREE_CTRL, &OnTreeSelChanged)
-	//ON_NOTIFY_REFLECT
+	ON_NOTIFY(NM_CLICK, ID_TREE_CTRL, &OnTreeMouseClick)
 	ON_COMMAND(ID_INITIAL_STATE, &CChildView::OnInitialState)
 	ON_UPDATE_COMMAND_UI(ID_INITIAL_STATE, &CChildView::OnUpdateInitialState)
+	ON_MESSAGE(WM_ITEM_CHECKED, &OnItemChecked)
+	ON_NOTIFY(NM_CLICK, ID_LIST_CTRL, &OnListItemClicked)
+	//ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemDblClicked)
+	ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemClicked)
+	//NM_CLICK
 END_MESSAGE_MAP()
 
 
@@ -161,7 +167,47 @@ void CChildView::OnTreeSelChanged(NMHDR* pHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CChildView::Insert(seq::leaf& l, HTREEITEM hParent)
+void CChildView::UpdateChildren(const seq::leaf& l)
+{
+	const int iIcon{ (int)l.get_icon_state() };
+	TreeView_SetItemState(m_ctrlTree, l.get_handle(), INDEXTOSTATEIMAGEMASK(iIcon), TVIS_STATEIMAGEMASK);
+
+	for (auto& p : l.get_leaves())
+		UpdateChildren(*p);
+}
+
+
+void CChildView::UpdateParents(const seq::leaf& l)
+{
+	if (auto pParent{ l.parent() })
+	{
+		const int iIcon{ (int)pParent->get_icon_state() };
+		TreeView_SetItemState(m_ctrlTree, pParent->get_handle(), INDEXTOSTATEIMAGEMASK(iIcon), TVIS_STATEIMAGEMASK);
+		UpdateParents(*pParent);
+	}
+}
+
+void CChildView::OnTreeMouseClick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	TVHITTESTINFO tv{};
+
+	const auto mPos{ GetMessagePos() };
+	CPoint pnt{ GET_X_LPARAM(mPos), GET_Y_LPARAM(mPos) };
+
+	m_ctrlTree.ScreenToClient(&pnt);
+
+	tv.pt.x = pnt.x;
+	tv.pt.y = pnt.y;
+
+	auto hTree = m_ctrlTree.HitTest(&tv);
+
+	if (tv.flags & TVHT_ONITEMSTATEICON)
+		PostMessage(WM_ITEM_CHECKED, (WPARAM)hTree);
+
+	*pResult = 0;
+}
+
+void CChildView::Insert(seq::leaf& l, HTREEITEM hItem)
 {
 	CString str;
 	str.Format(_T("%d {%s}, count %I64u, leaves %I64u, depth %I64u"),
@@ -173,11 +219,11 @@ void CChildView::Insert(seq::leaf& l, HTREEITEM hParent)
 
 	//const auto iid{ l.get_leaves().empty() ? icon_id_Leaf : (l.get_pattern().is_m() ? icon_id_M_Wave : icon_id_W_Wave) };
 	const auto iid{ l.get_pattern().is_m() ? icon_id_M_Wave : icon_id_W_Wave };
-	auto const h{ m_ctrlTree.InsertItem(str, iid, iid, hParent) };
-	l.set_handle(h);
+	hItem = m_ctrlTree.InsertItem(str, iid, iid, hItem);
+	l.set_handle(hItem);
 
 	for (auto pL : l.get_leaves())
-		Insert(*pL, h);
+		Insert(*pL, hItem);
 }
 
 void CChildView::UpdateTree()
@@ -228,6 +274,15 @@ const seq::leaf* CChildView::FindLeaf(HTREEITEM h)const
 	return nullptr;
 }
 
+seq::leaf* CChildView::FindLeaf(HTREEITEM h)
+{
+	for (auto& l : m_Tree)
+		if (auto pLeaf{ l.find(h) })
+			return pLeaf;
+
+	return nullptr;
+}
+
 CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
 {
 	MWInfo ret{};
@@ -258,8 +313,8 @@ void CChildView::Quotes2MWave(const int period)
 	const auto rec_count{ m_Quotes.size() };
 	const auto empty_value{ .0 };
 
-	mwave::SReversal sRev{ period };
-	sRev.Init(rec_count, empty_value);
+	m_SRev = period;
+	m_SRev.Init(rec_count, empty_value);
 
 	std::vector<double> open(rec_count), high(rec_count), low(rec_count);
 	auto itOpen{ open.begin() }, itHigh{ high.begin() }, itLow{ low.begin() };
@@ -269,13 +324,13 @@ void CChildView::Quotes2MWave(const int period)
 		*itHigh++ = rec.high,
 		*itLow++ = rec.low;
 
-	sRev.Apply(open, high, low);
+	m_SRev.Apply(open, high, low);
 
 	MWAVE mw;
 	mw.leg.index = mw.next_leg.index = -1;
 	mw.PProfit = mw.maxDD = .0;
 
-	auto& bufs{ sRev.GetBuffers() };
+	auto& bufs{ m_SRev.GetBuffers() };
 
 	for (int i = 0; i < (int)bufs.size(); ++i)
 	{
@@ -293,7 +348,7 @@ void CChildView::Quotes2MWave(const int period)
 
 		int iPat{ 4 };
 
-		for (int u = i - 1; u > -1; --u)
+		for (int u = mw.leg.index - 1; u > -1; --u)
 			if (bufs[u].Peaks != empty_value)
 			{
 				mw.mw[iPat].index = u;
@@ -440,7 +495,8 @@ void CChildView::LoadList()
 			item.lParam = (LPARAM)l.get_handle();
 			str.Format(_T("%d"), item.iItem + 1);
 			item.pszText = (LPTSTR)(LPCTSTR)str;
-			m_ctrlList.InsertItem(&item);
+			const auto ind{ m_ctrlList.InsertItem(&item) };
+			m_ctrlList.SetCheck(ind, l.is_selected());
 
 			item.mask = LVIF_TEXT;
 			++item.iSubItem;
@@ -521,4 +577,52 @@ void CChildView::OnInitialState()
 void CChildView::OnUpdateInitialState(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_ctrlTree.GetSelectedItem() == NULL);
+}
+
+LRESULT CChildView::OnItemChecked(WPARAM wParam, LPARAM)
+{
+	auto hItem{ HTREEITEM(wParam) };
+
+	if (auto pLeaf{ FindLeaf(hItem) })
+	{
+		pLeaf->select(!pLeaf->is_selected());
+
+		UpdateChildren(*pLeaf);
+		UpdateParents(*pLeaf);
+
+		if (hItem == m_ctrlTree.GetSelectedItem())
+			LoadList();
+		else m_ctrlTree.SelectItem(hItem);
+	}
+
+	return LRESULT(0);
+}
+
+void CChildView::OnListItemClicked(NMHDR* pHDR, LRESULT* pResult)
+{
+	const auto msgPos{ GetMessagePos() };
+	CPoint pnt{ GET_X_LPARAM(msgPos) ,GET_Y_LPARAM(msgPos) };
+	m_ctrlList.ScreenToClient(&pnt);
+
+	UINT flags;
+	const auto iItem{ m_ctrlList.HitTest(pnt,&flags) };
+
+	if (iItem > -1 && flags & LVHT_ONITEMSTATEICON)
+	{
+		const auto hItem{ (HTREEITEM)m_ctrlList.GetItemData(iItem) };
+		if (auto pLeaf{ FindLeaf(hItem) })
+		{
+			pLeaf->select(!m_ctrlList.GetCheck(iItem));
+			UpdateChildren(*pLeaf);
+			UpdateParents(*pLeaf);
+
+
+			//static int gClick{ 0 };
+			//CString str;
+			//str.Format(_T("CLick #%d"), ++gClick);
+			//OutputDebugString(str);
+		}
+	}
+
+	*pResult = 0;
 }
