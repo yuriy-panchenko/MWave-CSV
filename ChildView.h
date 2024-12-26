@@ -29,7 +29,7 @@ struct QUOTE_REC
 
 class CChildView : public CWnd
 {
-	struct MWInfo{double PProfit, maxDD, Profit,Loss;};
+	struct MWInfo { double PProfit, maxDD, Profit, Loss; };
 
 
 	// Construction
@@ -45,6 +45,7 @@ public:
 	// Overrides
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual void Serialize(CArchive& ar);
 
 	// Implementation
 public:
@@ -62,6 +63,8 @@ protected:
 	afx_msg void OnUpdateInitialState(CCmdUI* pCmdUI);
 	afx_msg LRESULT OnItemChecked(WPARAM, LPARAM);
 	afx_msg void OnListItemClicked(NMHDR*, LRESULT*);
+	afx_msg void OnProjectLoad();
+	afx_msg void OnProjectSave();
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -77,16 +80,16 @@ private:
 
 	void UpdateChildren(const seq::leaf& l);
 	void UpdateParents(const seq::leaf& l);
-	BOOL ValidateLeaf(const seq::leaf& l)const;
 
 private:
+	CString m_Filename, m_ProjectFilename;
 	std::vector<MWAVE> m_MWaves;
 	seq::chain m_Patterns;
-	seq::leaf m_Tree[32];
 	std::vector<QUOTE_REC> m_Quotes;
-	CRect m_rInfo;
+	seq::leaf m_Tree[32];
 	mwave::SReversal m_SRev;
 
+	CRect m_rInfo;
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;

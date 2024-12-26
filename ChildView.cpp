@@ -18,11 +18,32 @@
 
 #define SECTION_SETTINGS	_T("Settings")
 #define ENTRY_PERIOD			_T("Period")
+#define PROJECT_EXT			_T("mwp")
+#define PROJECT_FILE_FILTER	_T("MWave Projects Files (*.mwp)|*.mwp||")
 
 #define WM_ITEM_CHECKED	(WM_USER+0x0001)
 
 // CChildView
 int icon_id_M_Wave, icon_id_W_Wave, icon_id_Leaf;
+
+template<typename T>
+CArchive& operator<<(CArchive& ar, const std::vector<T>& v)
+{
+	const uint64_t size{ v.size() };
+	ar.Write(&size, sizeof size);
+	ar.Write(v.data(), UINT(size * sizeof(T)));
+	return ar;
+}
+
+template<typename T>
+CArchive& operator>>(CArchive& ar, std::vector<T>& v)
+{
+	uint64_t size;
+	ar.Read(&size, sizeof size);
+	v.resize(size);
+	ar.Read(v.data(), size * sizeof(T));
+	return ar;
+}
 
 CChildView::CChildView()
 {
@@ -46,6 +67,8 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	//ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemDblClicked)
 	ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemClicked)
 	//NM_CLICK
+	ON_COMMAND(ID_PROJECT_LOAD, &CChildView::OnProjectLoad)
+	ON_COMMAND(ID_PROJECT_SAVE, &CChildView::OnProjectSave)
 END_MESSAGE_MAP()
 
 
@@ -379,6 +402,7 @@ void CChildView::LoadFile(const std::filesystem::path& filename)
 	csv::file f;
 	if (f.Read(filename))
 	{
+		m_Filename = filename.wstring().c_str();
 		theApp.GetMainWnd()->SetWindowText(CString{ theApp.m_pszAppName } + _T(" - ") + filename.filename().c_str());
 		auto& lines{ f.GetLines() };
 
@@ -625,4 +649,93 @@ void CChildView::OnListItemClicked(NMHDR* pHDR, LRESULT* pResult)
 	}
 
 	*pResult = 0;
+}
+
+void CChildView::Serialize(CArchive& ar)
+{
+	if (ar.IsStoring())
+	{	// storing code
+		/*CString m_Filename;
+		std::vector<MWAVE> m_MWaves;
+		seq::chain m_Patterns;
+		std::vector<QUOTE_REC> m_Quotes;
+		seq::leaf m_Tree[32];
+		mwave::SReversal m_SRev;
+		*/
+
+		ar << m_Filename << m_MWaves << m_Patterns << m_Quotes;
+
+		//for (auto& l : m_Tree)
+		//	l.serialize(ar);
+
+		//std::string s;
+		//std::streambuf buf{  };
+
+		class my_buff :public std::streambuf
+		{
+		public:
+			char* data() { return pbase(); }
+			size_t size() { return std::distance(pbase(), epptr()); }
+		} buf;
+
+		std::ostream os{ &buf };
+		os << m_SRev;
+
+		ar.Write(buf.data(), (UINT)buf.size());
+	}
+	else
+	{	// loading code
+		ar >> m_Filename;
+	}
+}
+
+
+void CChildView::OnProjectLoad()
+{
+	CFile file;
+	CFileDialog dlg{ TRUE, PROJECT_EXT, NULL, 6UL, PROJECT_FILE_FILTER, this };
+	if (dlg.DoModal() == IDOK)
+		if (file.Open(dlg.GetPathName(), CFile::modeRead | CFile::typeBinary | CFile::shareDenyWrite))
+		{
+			CArchive ar{ &file,CArchive::load };
+			TRY
+			{
+				Serialize(ar);
+				m_ProjectFilename = dlg.GetPathName();
+			}
+				CATCH(CException, e)
+			{
+				e->ReportError();
+			}
+			END_CATCH
+		}
+}
+
+
+void CChildView::OnProjectSave()
+{
+	CFile file;
+	CFileException exc;
+
+	CString fname;
+	if (!m_ProjectFilename.IsEmpty())
+		fname = std::filesystem::path{ m_ProjectFilename.GetString() }.filename().wstring().c_str();
+
+	CFileDialog dlg{ FALSE, PROJECT_EXT, fname, 6UL, PROJECT_FILE_FILTER, this };
+	if (dlg.DoModal() == IDOK)
+		if (file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::typeBinary | CFile::shareDenyRead | CFile::shareDenyWrite, &exc))
+		{
+			CArchive ar{ &file,CArchive::store };
+			TRY
+			{
+			Serialize(ar);
+			m_ProjectFilename = dlg.GetPathName();
+			}
+				CATCH(CException, e)
+			{
+				e->ReportError();
+			}
+			END_CATCH
+		}
+		else exc.ReportError();
 }

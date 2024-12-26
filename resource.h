@@ -19,13 +19,16 @@
 #define ID_FILE_OPEN32771               32771
 #define ID_BUTTON32772                  32772
 #define ID_INITIAL_STATE                32772
+#define ID_FILE_PROJECT                 32773
+#define ID_PROJECT_SAVE                 32774
+#define ID_PROJECT_LOAD                 32775
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        316
-#define _APS_NEXT_COMMAND_VALUE         32773
+#define _APS_NEXT_COMMAND_VALUE         32776
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           312
 #endif
