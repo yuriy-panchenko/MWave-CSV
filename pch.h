@@ -12,5 +12,25 @@
 #include "..\lib\YxShare\YxShare.h"
 #include <vector>
 #include <thread>
+#include <cassert>
+
+template<typename T>
+CArchive& operator<<(CArchive& ar, const std::vector<T>& v)
+{
+	const uint64_t size{ v.size() };
+	ar.Write(&size, sizeof size);
+	ar.Write(v.data(), UINT(size * sizeof(T)));
+	return ar;
+}
+
+template<typename T>
+CArchive& operator>>(CArchive& ar, std::vector<T>& v)
+{
+	uint64_t size;
+	ar.Read(&size, sizeof size);
+	v.resize(size);
+	ar.Read(v.data(), UINT(size * sizeof(T)));
+	return ar;
+}
 
 #endif //PCH_H

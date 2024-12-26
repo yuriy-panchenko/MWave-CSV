@@ -71,7 +71,7 @@ private:
 	void LoadTree();
 	void LoadList();
 	void Insert(seq::leaf& l, HTREEITEM hParent = TVI_ROOT);
-	void UpdateTree();
+	void TreeFromPatterns();
 	const seq::leaf* FindLeaf(HTREEITEM)const;
 	seq::leaf* FindLeaf(HTREEITEM);
 	MWInfo GetInfo(const seq::leaf& l)const;

@@ -7,6 +7,7 @@
 #include "MWave CSV.h"
 #include "ChildView.h"
 #include "CSRevParamDlg.h"
+#include <ios>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -25,25 +26,6 @@
 
 // CChildView
 int icon_id_M_Wave, icon_id_W_Wave, icon_id_Leaf;
-
-template<typename T>
-CArchive& operator<<(CArchive& ar, const std::vector<T>& v)
-{
-	const uint64_t size{ v.size() };
-	ar.Write(&size, sizeof size);
-	ar.Write(v.data(), UINT(size * sizeof(T)));
-	return ar;
-}
-
-template<typename T>
-CArchive& operator>>(CArchive& ar, std::vector<T>& v)
-{
-	uint64_t size;
-	ar.Read(&size, sizeof size);
-	v.resize(size);
-	ar.Read(v.data(), size * sizeof(T));
-	return ar;
-}
 
 CChildView::CChildView()
 {
@@ -245,11 +227,14 @@ void CChildView::Insert(seq::leaf& l, HTREEITEM hItem)
 	hItem = m_ctrlTree.InsertItem(str, iid, iid, hItem);
 	l.set_handle(hItem);
 
+	const int iIcon{ (int)l.get_icon_state() };
+	TreeView_SetItemState(m_ctrlTree, hItem, INDEXTOSTATEIMAGEMASK(iIcon), TVIS_STATEIMAGEMASK);
+
 	for (auto pL : l.get_leaves())
 		Insert(*pL, hItem);
 }
 
-void CChildView::UpdateTree()
+void CChildView::TreeFromPatterns()
 {
 	for (char i = 0; i < 32; ++i)
 		m_Tree[i] = { mwave::Pattern{ i } };
@@ -278,7 +263,7 @@ void CChildView::LoadTree()
 {
 	m_ctrlTree.SetRedraw(FALSE);
 
-	UpdateTree();
+	m_ctrlTree.DeleteAllItems();
 
 	for (auto& pat : m_Tree)
 		Insert(pat);
@@ -500,7 +485,10 @@ void CChildView::LoadFile(const std::filesystem::path& filename)
 		m_Patterns.shrink_to_fit();
 	}
 
+	TreeFromPatterns();
+
 	LoadTree();
+
 	theApp.EndWaitCursor();
 }
 
@@ -655,37 +643,38 @@ void CChildView::Serialize(CArchive& ar)
 {
 	if (ar.IsStoring())
 	{	// storing code
-		/*CString m_Filename;
-		std::vector<MWAVE> m_MWaves;
-		seq::chain m_Patterns;
-		std::vector<QUOTE_REC> m_Quotes;
-		seq::leaf m_Tree[32];
-		mwave::SReversal m_SRev;
-		*/
 
 		ar << m_Filename << m_MWaves << m_Patterns << m_Quotes;
 
-		//for (auto& l : m_Tree)
-		//	l.serialize(ar);
+		for (auto& l : m_Tree)
+			l.Serialize(ar);
 
-		//std::string s;
-		//std::streambuf buf{  };
-
-		class my_buff :public std::streambuf
-		{
-		public:
-			char* data() { return pbase(); }
-			size_t size() { return std::distance(pbase(), epptr()); }
-		} buf;
-
+		std::stringbuf buf;
 		std::ostream os{ &buf };
 		os << m_SRev;
 
-		ar.Write(buf.data(), (UINT)buf.size());
+		const auto str{ buf.str() };
+		const auto bufSize{ (UINT)str.length() };
+		ar.Write(&bufSize, sizeof bufSize);
+		ar.Write(str.data(), bufSize);
 	}
 	else
 	{	// loading code
-		ar >> m_Filename;
+		ar >> m_Filename >> m_MWaves >> m_Patterns >> m_Quotes;
+
+		for (auto& l : m_Tree)
+			l.Serialize(ar);
+
+		UINT bufSize;
+		ar.Read(&bufSize, sizeof bufSize);
+
+		std::string str;
+		str.resize(bufSize);
+		ar.Read(str.data(), bufSize);
+
+		std::stringbuf buf{ str };
+		std::istream os{ &buf };
+		os >> m_SRev;
 	}
 }
 
@@ -702,12 +691,15 @@ void CChildView::OnProjectLoad()
 			{
 				Serialize(ar);
 				m_ProjectFilename = dlg.GetPathName();
+				theApp.GetMainWnd()->SetWindowText(CString{ theApp.m_pszAppName } + _T(" - ") + std::filesystem::path{m_ProjectFilename.GetString()}.filename().c_str());
 			}
 				CATCH(CException, e)
 			{
 				e->ReportError();
 			}
 			END_CATCH
+
+				LoadTree();
 		}
 }
 
@@ -728,8 +720,8 @@ void CChildView::OnProjectSave()
 			CArchive ar{ &file,CArchive::store };
 			TRY
 			{
-			Serialize(ar);
-			m_ProjectFilename = dlg.GetPathName();
+				Serialize(ar);
+				m_ProjectFilename = dlg.GetPathName();
 			}
 				CATCH(CException, e)
 			{

@@ -129,6 +129,52 @@ namespace seq
 		return nullptr;
 	}
 
+	void leaf::LoadChildren(CArchive& ar, const leaf* pParent)
+	{
+		ASSERT(ar.IsLoading());
+
+	}
+
+	void leaf::Serialize(CArchive& ar)
+	{
+		if (ar.IsStoring())
+		{
+			ar << pat.get_id() << isSelected << indexes;
+
+			const auto count{ UINT32(leaves.size()) };
+			ar.Write(&count, sizeof count);
+
+			for (auto p : leaves)
+				p->Serialize(ar);
+		}
+		else
+		{
+			hItem = NULL;
+			pPrev = nullptr;
+
+			char ch;
+			ar >> ch >> isSelected >> indexes;
+
+			pat = ch;
+
+			UINT32 i32;
+			ar.Read(&i32, sizeof i32);
+
+			for (auto p : leaves)
+				delete p;
+
+			leaves.resize(i32);
+			for (auto iter{ leaves.begin() }; iter != leaves.end(); ++iter)
+				*iter = new leaf;
+
+			for(auto p:leaves)
+				p->Serialize(ar);
+			
+			for (auto p : leaves)
+				p->pPrev = this;
+		}
+	}
+
 	chain leaf::get_chain()const
 	{
 		if (pPrev)

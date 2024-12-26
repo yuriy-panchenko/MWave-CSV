@@ -7,12 +7,14 @@ namespace seq
 	class leaf
 	{
 		enum class cbstate { unselected = 1, selected, mix, };
-		mwave::Pattern pat;
+		
 		HTREEITEM hItem;
 		const leaf* pPrev;
-		std::vector<leaf*> leaves;
-		std::vector<INT_PTR> indexes;
+		
+		mwave::Pattern pat;
 		bool isSelected{ false };
+		std::vector<INT_PTR> indexes;
+		std::vector<leaf*> leaves;
 
 	public:
 		leaf() = default;
@@ -45,5 +47,7 @@ namespace seq
 		void set_handle(HTREEITEM);
 		void select(bool b = true);
 		leaf* find(HTREEITEM);
+		void Serialize(CArchive&);
+		void LoadChildren(CArchive& ar, const leaf* pParent);
 	};
 }

@@ -1,11 +1,14 @@
 *tickboxes
+*save/load project
 
 bar candles chart
 	scale
 	timeline
 
+table of trades
+cummulative chart
 button reload file
 recent files list
 on space bar down tick boxes
 PProfit/maxDD for price csv
-save/load project
+period status bar
