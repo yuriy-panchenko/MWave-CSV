@@ -9,7 +9,7 @@ namespace seq
 		enum class cbstate { unselected = 1, selected, mix, };
 		
 		HTREEITEM hItem;
-		const leaf* pPrev;
+		leaf* pPrev;
 		
 		mwave::Pattern pat;
 		bool isSelected{ false };
@@ -21,7 +21,7 @@ namespace seq
 		leaf(const leaf&) = delete;
 		leaf(leaf&&);
 		leaf(mwave::Pattern mw);
-		leaf(mwave::Pattern mw, const leaf* pParent);
+		leaf(mwave::Pattern mw, leaf* pParent);
 		~leaf();
 
 		leaf& operator=(const leaf&) = delete;
@@ -40,6 +40,7 @@ namespace seq
 		bool is_selected()const;
 		cbstate get_icon_state()const;
 		size_t get_siblings_count()const;
+		bool is_valid()const;
 
 		void set_indexes(std::vector<INT_PTR>&& v);
 		void set_indexes(const std::vector<INT_PTR>& v);
@@ -51,5 +52,7 @@ namespace seq
 		leaf* find(HTREEITEM);
 		void Serialize(CArchive&);
 		void LoadChildren(CArchive& ar, const leaf* pParent);
+		leaf* parent();
+		bool select_by_children();
 	};
 }

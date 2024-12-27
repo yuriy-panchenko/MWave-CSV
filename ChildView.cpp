@@ -45,7 +45,7 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_NOTIFY(NM_CLICK, ID_TREE_CTRL, &OnTreeMouseClick)
 	ON_COMMAND(ID_INITIAL_STATE, &CChildView::OnInitialState)
 	ON_UPDATE_COMMAND_UI(ID_INITIAL_STATE, &CChildView::OnUpdateInitialState)
-	ON_MESSAGE(WM_ITEM_CHECKED, &OnItemChecked)
+	ON_MESSAGE(WM_ITEM_CHECKED, &OnTreeItemChecked)
 	ON_NOTIFY(NM_CLICK, ID_LIST_CTRL, &OnListItemClicked)
 	//ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemDblClicked)
 	ON_NOTIFY(NM_DBLCLK, ID_LIST_CTRL, &OnListItemClicked)
@@ -139,7 +139,7 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ctrlList.InsertColumn(col++, _T("Diff"));
 	m_ctrlList.InsertColumn(col++, _T("AvDiff"));
 
-	PostMessage(WM_COMMAND, ID_FILE_OPEN);
+	//PostMessage(WM_COMMAND, ID_FILE_OPEN);
 
 	return 0;
 }
@@ -181,18 +181,34 @@ void CChildView::UpdateChildren(const seq::leaf& l)
 	TreeView_SetItemState(m_ctrlTree, l.get_handle(), INDEXTOSTATEIMAGEMASK(iIcon), TVIS_STATEIMAGEMASK);
 
 	for (auto& p : l.get_leaves())
+	{
+		p->select(l.is_selected());
 		UpdateChildren(*p);
+	}
 }
 
 
-void CChildView::UpdateParents(const seq::leaf& l)
+void CChildView::UpdateParents(seq::leaf& l)
 {
 	if (auto pParent{ l.parent() })
 	{
+		ASSERT(!pParent->get_leaves().empty());
+		pParent->select_by_children();
+
 		const int iIcon{ (int)pParent->get_icon_state() };
 		TreeView_SetItemState(m_ctrlTree, pParent->get_handle(), INDEXTOSTATEIMAGEMASK(iIcon), TVIS_STATEIMAGEMASK);
 		UpdateParents(*pParent);
 	}
+}
+
+std::unique_ptr< trd::leaf> CChildView::Clone(const seq::leaf& l, trd::leaf* parent) const
+{
+	auto ret{ std::make_unique<trd::leaf>(l, GetInfo(l), parent) };
+
+	for (auto p : l.get_leaves())
+		ret->add(Clone(*p, ret.get()).release());
+
+	return ret;
 }
 
 void CChildView::OnTreeMouseClick(NMHDR* pNMHDR, LRESULT* pResult)
@@ -594,7 +610,7 @@ void CChildView::OnUpdateInitialState(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_ctrlTree.GetSelectedItem() == NULL);
 }
 
-LRESULT CChildView::OnItemChecked(WPARAM wParam, LPARAM)
+LRESULT CChildView::OnTreeItemChecked(WPARAM wParam, LPARAM)
 {
 	auto hItem{ HTREEITEM(wParam) };
 
@@ -769,41 +785,28 @@ void CChildView::OnTrade()
 	ASSERT(!m_Quotes.empty());
 	ASSERT(m_Patterns.size() == m_MWaves.size());
 
-	//Trader trader;
+	Trader trader;
+	trd::tree tree;
 
-	int index{ 0 };
+	for (auto& l : m_Tree)
+		tree.set(std::move(*Clone(l).release()));
 
-	const auto it_rev_End{ m_Patterns.crend() };
-	const auto itBeg{ m_Patterns.cbegin() }, itEnd{ m_Patterns.cend() };
+	const auto rEnd{ m_Patterns.crend() };
+	auto itMWave{ m_MWaves.begin() };
 
-	for (auto iter{ itBeg }; iter != itEnd; ++iter)
-	{
-		if (auto pLeaf{ FindLastTradebleLeaf(std::make_reverse_iterator(iter + 1), it_rev_End) })
+	auto to_time_price = [this](const PNT& pnt)->Trader::TradePoint
 		{
-			const auto info{ GetInfo(*pLeaf) };
-			bool isBuy{ (*iter).is_m() };
-			if (info.Profit - info.Loss < .0)
-				isBuy = !isBuy;
-		}
-		
-		//if (auto pLeaf{FIn})
-		
-		//BOOL isBuy;
-		//if (trader.IsTradablePattern(std::make_reverse_iterator(iter + 1), it_rev_End, isBuy))
-		//{
-		//	auto index{ std::distance(itBeg,iter) - 1 };
-		//	ASSERT(m_Patterns[index] == *iter);
-		//	auto& mw{ m_MWaves[index] };
-		//	auto& pr{ m_Quotes[mw.leg.index] };
-		//	auto& pr2{ m_Quotes[mw.next_leg.index] };
-		//	//auto isBuy{ iter->is_m() };
-		//	//const auto& inf{ info[(char)*iter] };
-		//	//if (inf.Profit - inf.Loss < .0)
-		//	//	isBuy = !isBuy;
+			if (m_Quotes.empty())
+				return std::make_pair(pnt.index, pnt.value);
+			else
+				return std::make_pair(m_Quotes[pnt.index].time, pnt.value);
+		};
 
-		//	trader.Open(isBuy, pr.time, mw.leg.value);
-		//	trader.Close(pr2.time, mw.next_leg.value);
-		//}
+	for (auto iter{ m_Patterns.begin() }; iter != m_Patterns.end(); ++iter, ++itMWave)
+	{
+		trader.Close(to_time_price(itMWave->leg));
+		if (auto pLeaf{ tree.is_tradable(std::make_reverse_iterator(iter + 1), rEnd) })
+			trader.Open(pLeaf->is_buy(), to_time_price(itMWave->leg));
 	}
 
 	//auto pDlg{ new CReportListDlg{this} };

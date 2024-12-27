@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "seq.h"
+#include "trd_leaf.h"
 
 namespace seq
 {
@@ -8,7 +9,7 @@ namespace seq
 	{
 	}
 
-	leaf::leaf(mwave::Pattern mw, const leaf* pParent)
+	leaf::leaf(mwave::Pattern mw, leaf* pParent)
 		:pat{ mw }
 		, hItem{ NULL }
 		, pPrev{ pParent }
@@ -150,6 +151,25 @@ namespace seq
 	{
 		ASSERT(ar.IsLoading());
 
+	}
+
+	leaf* leaf::parent()
+	{
+		return pPrev;
+	}
+
+	bool leaf::select_by_children()
+	{
+		select(false);
+
+		for (auto p : leaves)
+			if (p->is_selected())
+			{
+				select();
+				break;
+			}
+		
+		return is_selected();
 	}
 
 	void leaf::Serialize(CArchive& ar)
@@ -316,5 +336,10 @@ namespace seq
 			ret += p->get_siblings_count();
 
 		return ret;
+	}
+
+	bool leaf::is_valid() const
+	{
+		return pat.get_id() > -1 && pat.get_id() < 32;
 	}
 }

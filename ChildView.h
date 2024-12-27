@@ -1,9 +1,8 @@
 
 // ChildView.h : interface of the CChildView class
 //
-
-
 #pragma once
+#include "trd_leaf.h"
 
 // CChildView window
 
@@ -40,7 +39,7 @@ protected:
 	afx_msg void OnTreeMouseClick(NMHDR*, LRESULT*);
 	afx_msg void OnInitialState();
 	afx_msg void OnUpdateInitialState(CCmdUI* pCmdUI);
-	afx_msg LRESULT OnItemChecked(WPARAM, LPARAM);
+	afx_msg LRESULT OnTreeItemChecked(WPARAM, LPARAM);
 	afx_msg void OnListItemClicked(NMHDR*, LRESULT*);
 	afx_msg void OnProjectLoad();
 	afx_msg void OnProjectSave();
@@ -59,11 +58,9 @@ private:
 	void Quotes2MWave(int period);
 	void LoadFile(const std::filesystem::path&);
 	
-	template <typename Iter>
-	const seq::leaf* FindLastTradebleLeaf(Iter, Iter)const;
-
 	void UpdateChildren(const seq::leaf& l);
-	void UpdateParents(const seq::leaf& l);
+	void UpdateParents(seq::leaf& l);
+	std::unique_ptr<trd::leaf> Clone(const seq::leaf&, trd::leaf* parent=nullptr)const;
 
 private:
 	CString m_Filename, m_ProjectFilename;
@@ -79,9 +76,3 @@ private:
 	CImageList m_imgList;
 	//CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
 };
-
-template <typename Iter>
-const seq::leaf* CChildView::FindLastTradebleLeaf(Iter, Iter)const
-{
-	return nullptr;
-}

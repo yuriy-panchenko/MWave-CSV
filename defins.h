@@ -22,10 +22,10 @@ struct QUOTE_REC
 
 struct MWInfo { double PProfit, maxDD, Profit, Loss; };
 
-struct MWaveTrade
-{
-	seq::leaf l;
-	MWInfo i;
-};
+//struct MWaveTrade
+//{
+//	seq::leaf l;
+//	MWInfo i;
+//};
 
 //using TradableTree = std::vector<MWaveTrade>;
