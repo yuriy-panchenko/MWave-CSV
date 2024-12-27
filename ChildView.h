@@ -4,32 +4,11 @@
 
 
 #pragma once
-#include "seq.h"
-
-struct PNT
-{
-	double value;
-	int index;
-};
-
-struct MWAVE
-{
-	PNT mw[5], leg, next_leg;
-	double PProfit, maxDD;
-};
-
-struct QUOTE_REC
-{
-	CTime time;
-	double open, high, low, close;
-	int volTick, volume, spread;
-};
 
 // CChildView window
 
 class CChildView : public CWnd
 {
-	struct MWInfo { double PProfit, maxDD, Profit, Loss; };
 
 
 	// Construction
@@ -65,6 +44,8 @@ protected:
 	afx_msg void OnListItemClicked(NMHDR*, LRESULT*);
 	afx_msg void OnProjectLoad();
 	afx_msg void OnProjectSave();
+	afx_msg void OnTrade();
+	afx_msg void OnUpdateTrade(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -77,6 +58,9 @@ private:
 	MWInfo GetInfo(const seq::leaf& l)const;
 	void Quotes2MWave(int period);
 	void LoadFile(const std::filesystem::path&);
+	
+	template <typename Iter>
+	const seq::leaf* FindLastTradebleLeaf(Iter, Iter)const;
 
 	void UpdateChildren(const seq::leaf& l);
 	void UpdateParents(const seq::leaf& l);
@@ -93,4 +77,11 @@ private:
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
+	//CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
 };
+
+template <typename Iter>
+const seq::leaf* CChildView::FindLastTradebleLeaf(Iter, Iter)const
+{
+	return nullptr;
+}

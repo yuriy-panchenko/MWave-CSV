@@ -7,7 +7,8 @@
 #include "MWave CSV.h"
 #include "ChildView.h"
 #include "CSRevParamDlg.h"
-#include <ios>
+#include "CReportListDlg.h"
+#include "Trader.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -51,6 +52,8 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	//NM_CLICK
 	ON_COMMAND(ID_PROJECT_LOAD, &CChildView::OnProjectLoad)
 	ON_COMMAND(ID_PROJECT_SAVE, &CChildView::OnProjectSave)
+	ON_COMMAND(ID_TRADE, &CChildView::OnTrade)
+	ON_UPDATE_COMMAND_UI(ID_TRADE, &CChildView::OnUpdateTrade)
 END_MESSAGE_MAP()
 
 
@@ -291,7 +294,7 @@ seq::leaf* CChildView::FindLeaf(HTREEITEM h)
 	return nullptr;
 }
 
-CChildView::MWInfo CChildView::GetInfo(const seq::leaf& l) const
+MWInfo CChildView::GetInfo(const seq::leaf& l) const
 {
 	MWInfo ret{};
 	double diff;
@@ -730,4 +733,85 @@ void CChildView::OnProjectSave()
 			END_CATCH
 		}
 		else exc.ReportError();
+}
+
+seq::leaf make_tradable(const seq::leaf& l)
+{
+	seq::leaf ret{ l.get_pattern() };
+	auto& lvs{ ret.get_leaves() };
+
+	for (auto p : l.get_leaves())
+		if (p->is_selected())
+		{
+			lvs.push_back(new seq::leaf{ p->get_pattern(), &ret });
+		}
+
+	return ret;
+}
+
+//TradableTree CChildView::CollectTradableTree()const
+//{
+//	TradableTree ret;
+//
+//	for (auto& l : m_Tree)
+//		if (l.is_selected())
+//		{
+//			MWaveTrade trd{ make_tradable(l) };
+//			trd.i = GetInfo(l);
+//			ret.push_back(std::move(trd));
+//		}
+//
+//	return ret;
+//}
+
+void CChildView::OnTrade()
+{
+	ASSERT(!m_Quotes.empty());
+	ASSERT(m_Patterns.size() == m_MWaves.size());
+
+	//Trader trader;
+
+	int index{ 0 };
+
+	const auto it_rev_End{ m_Patterns.crend() };
+	const auto itBeg{ m_Patterns.cbegin() }, itEnd{ m_Patterns.cend() };
+
+	for (auto iter{ itBeg }; iter != itEnd; ++iter)
+	{
+		if (auto pLeaf{ FindLastTradebleLeaf(std::make_reverse_iterator(iter + 1), it_rev_End) })
+		{
+			const auto info{ GetInfo(*pLeaf) };
+			bool isBuy{ (*iter).is_m() };
+			if (info.Profit - info.Loss < .0)
+				isBuy = !isBuy;
+		}
+		
+		//if (auto pLeaf{FIn})
+		
+		//BOOL isBuy;
+		//if (trader.IsTradablePattern(std::make_reverse_iterator(iter + 1), it_rev_End, isBuy))
+		//{
+		//	auto index{ std::distance(itBeg,iter) - 1 };
+		//	ASSERT(m_Patterns[index] == *iter);
+		//	auto& mw{ m_MWaves[index] };
+		//	auto& pr{ m_Quotes[mw.leg.index] };
+		//	auto& pr2{ m_Quotes[mw.next_leg.index] };
+		//	//auto isBuy{ iter->is_m() };
+		//	//const auto& inf{ info[(char)*iter] };
+		//	//if (inf.Profit - inf.Loss < .0)
+		//	//	isBuy = !isBuy;
+
+		//	trader.Open(isBuy, pr.time, mw.leg.value);
+		//	trader.Close(pr2.time, mw.next_leg.value);
+		//}
+	}
+
+	//auto pDlg{ new CReportListDlg{this} };
+	//pDlg->m_List
+}
+
+
+void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
+{
+	//pCmdUI->Enable();
 }

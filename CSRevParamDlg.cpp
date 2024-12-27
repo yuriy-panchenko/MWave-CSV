@@ -36,3 +36,14 @@ END_MESSAGE_MAP()
 
 
 // CSRevParamDlg message handlers
+
+
+BOOL CSRevParamDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+
+	m_spinPeriod.SetRange(1, 10000);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
+}

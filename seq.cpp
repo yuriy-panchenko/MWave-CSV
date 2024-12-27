@@ -16,6 +16,17 @@ namespace seq
 	{
 	}
 
+	leaf::leaf(leaf&& oth)
+		:hItem{ oth.hItem }
+		, pPrev{ oth.pPrev }
+		, pat{ oth.pat }
+		, isSelected{ oth.isSelected }
+		, indexes{ std::move(oth.indexes) }
+		, leaves{ std::move(oth.leaves) }
+	{
+		//oth.leaves.clear();
+	}
+
 	leaf::~leaf()
 	{
 		for (auto pL : leaves)
@@ -25,6 +36,11 @@ namespace seq
 	void leaf::set_indexes(std::vector<INT_PTR>&& v)
 	{
 		indexes = std::move(v);
+	}
+
+	void leaf::set_indexes(const std::vector<INT_PTR>& v)
+	{
+		indexes = v;
 	}
 
 	leaf& leaf::operator=(leaf&& oth)
@@ -76,21 +92,22 @@ namespace seq
 
 		indexes.shrink_to_fit();
 
-		if (indexes.size() < 2)
+		if (indexes.size() < 1)
 			return false;
 
-		for (char ch = 0; ch < 32; ++ch)
-		{
-			const mwave::Pattern oth{ ch };
-			if (pat.is_m() ^ oth.is_m())
+		if (indexes.size() > 1)
+			for (char ch = 0; ch < 32; ++ch)
 			{
-				auto pL{ new leaf{ oth, this } };
-				if (pL->grow(mws))
-					leaves.push_back(pL);
-				else
-					delete pL;
+				const mwave::Pattern oth{ ch };
+				if (pat.is_m() ^ oth.is_m())
+				{
+					auto pL{ new leaf{ oth, this } };
+					if (pL->grow(mws))
+						leaves.push_back(pL);
+					else
+						delete pL;
+				}
 			}
-		}
 
 		return true;
 	}
@@ -167,9 +184,9 @@ namespace seq
 			for (auto iter{ leaves.begin() }; iter != leaves.end(); ++iter)
 				*iter = new leaf;
 
-			for(auto p:leaves)
+			for (auto p : leaves)
 				p->Serialize(ar);
-			
+
 			for (auto p : leaves)
 				p->pPrev = this;
 		}
@@ -286,5 +303,18 @@ namespace seq
 			return cbstate::unselected;
 
 		return cbstate::mix;
+	}
+
+	size_t leaf::get_siblings_count() const
+	{
+		if (leaves.empty())
+			return 1ull;
+
+		auto ret{ 0ull };
+
+		for (auto p : leaves)
+			ret += p->get_siblings_count();
+
+		return ret;
 	}
 }

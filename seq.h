@@ -19,7 +19,7 @@ namespace seq
 	public:
 		leaf() = default;
 		leaf(const leaf&) = delete;
-		leaf(leaf&&) = default;
+		leaf(leaf&&);
 		leaf(mwave::Pattern mw);
 		leaf(mwave::Pattern mw, const leaf* pParent);
 		~leaf();
@@ -39,8 +39,10 @@ namespace seq
 		const leaf* find(HTREEITEM)const;
 		bool is_selected()const;
 		cbstate get_icon_state()const;
+		size_t get_siblings_count()const;
 
 		void set_indexes(std::vector<INT_PTR>&& v);
+		void set_indexes(const std::vector<INT_PTR>& v);
 		bool grow(const chain& mws);
 		std::vector<leaf*>& get_leaves();
 		std::vector<INT_PTR>& get_indexes();

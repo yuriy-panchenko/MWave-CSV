@@ -9,10 +9,11 @@
 
 // add headers that you want to pre-compile here
 #include "framework.h"
-#include "..\lib\YxShare\YxShare.h"
 #include <vector>
 #include <thread>
 #include <cassert>
+#include "..\lib\YxShare\YxShare.h"
+#include "defins.h"
 
 template<typename T>
 CArchive& operator<<(CArchive& ar, const std::vector<T>& v)

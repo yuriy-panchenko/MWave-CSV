@@ -24,4 +24,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 private:
 	CSpinButtonCtrl m_spinPeriod;
+public:
+	virtual BOOL OnInitDialog();
 };
