@@ -18,6 +18,7 @@ public:
 public:
 
 	void Open(const trd::leaf*, const TradePoint&);
+	void Open(BOOL isBuy, seq::chain ch, const TradePoint&);
 	void Close(const TradePoint&);
 	void Fill(CListCtrl&)const;
 

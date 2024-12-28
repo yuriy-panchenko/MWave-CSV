@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "trd_leaf.h"
+#include "Trader.h"
 
 // CChildView window
 class CReportListDlg;
@@ -55,13 +56,15 @@ private:
 	void TreeFromPatterns();
 	const seq::leaf* FindLeaf(HTREEITEM)const;
 	seq::leaf* FindLeaf(HTREEITEM);
-	MWInfo GetInfo(const seq::leaf& l)const;
+	MWINFO GetInfo(const seq::leaf& l)const;
 	void Quotes2MWave(int period);
 	void LoadFile(const std::filesystem::path&);
 	
 	void UpdateChildren(const seq::leaf& l);
 	void UpdateParents(seq::leaf& l);
 	std::unique_ptr<trd::leaf> Clone(const seq::leaf&, trd::leaf* parent=nullptr)const;
+	Trader::TradePoint ToTimePrice(const PNT& pnt)const;
+	void ShowReportDlg(const Trader&);
 
 private:
 	CString m_Filename, m_ProjectFilename;
@@ -76,4 +79,7 @@ private:
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
 	CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
+public:
+	afx_msg void OnTrade2();
+	afx_msg void OnUpdateTrade2(CCmdUI* pCmdUI);
 };

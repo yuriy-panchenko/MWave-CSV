@@ -20,7 +20,11 @@ struct QUOTE_REC
 	int volTick, volume, spread;
 };
 
-struct MWInfo { double PProfit, maxDD, Profit, Loss; };
+struct MWINFO
+{
+	double PProfit, maxDD, Profit, Loss;
+	double Net()const { return Profit - Loss; }
+};
 
 template<typename T>
 CArchive& operator<<(CArchive& ar, const std::vector<T>& v)

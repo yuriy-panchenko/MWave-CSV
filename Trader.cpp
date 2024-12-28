@@ -3,12 +3,17 @@
 
 void Trader::Open(const trd::leaf* pLeaf, const TradePoint& tp)
 {
+	Open(pLeaf->is_buy(), pLeaf->chain(), tp);
+}
+
+void Trader::Open(BOOL isBuy, seq::chain ch, const TradePoint& tp)
+{
 	ASSERT(m_State == Closed);
 
-	m_OpenTrade.isBuy = pLeaf->is_buy();
+	m_OpenTrade.isBuy = isBuy;
 	m_OpenTrade.Open = tp;
-	m_OpenTrade.Chain = pLeaf->chain();
-	
+	m_OpenTrade.Chain = ch;
+
 	m_State = m_OpenTrade.isBuy ? Long : Short;
 }
 

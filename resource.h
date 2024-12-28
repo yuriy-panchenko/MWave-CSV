@@ -25,13 +25,15 @@
 #define ID_PROJECT_SAVE                 32774
 #define ID_PROJECT_LOAD                 32775
 #define ID_TRADE                        32776
+#define ID_BUTTON32777                  32777
+#define ID_TRADE2                       32777
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        318
-#define _APS_NEXT_COMMAND_VALUE         32777
+#define _APS_NEXT_COMMAND_VALUE         32778
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           312
 #endif

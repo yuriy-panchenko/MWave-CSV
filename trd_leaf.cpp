@@ -11,7 +11,14 @@ namespace trd
 	{
 	}
 
-	leaf::leaf(const seq::leaf& l, const MWInfo& i, const leaf* parent)
+	leaf::leaf(mwave::Pattern p)
+		:pat{ p }
+		, pPrev{ nullptr }
+		, info{}
+	{
+	}
+
+	leaf::leaf(const seq::leaf& l, const MWINFO& i, const leaf* parent)
 		:pat{ l.get_pattern() }
 		, pPrev{ parent }
 		, isSelected{ l.is_selected() }
@@ -47,6 +54,11 @@ namespace trd
 		}
 
 		return ret;
+	}
+
+	const leaf* leaf::add(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo, const MWINFO& info)
+	{
+		return nullptr;
 	}
 
 	bool leaf::is_buy() const
@@ -86,7 +98,8 @@ namespace trd
 			return nullptr;
 
 		if (leaves.empty())
-			return this;
+			return pPrev ? pPrev : this;
+			//return this;
 
 		auto nxt{ itFrom + 1 };
 
@@ -143,6 +156,21 @@ namespace trd
 		if (0 > (char)*itFrom || 31 < (char)*itFrom)
 			return nullptr;
 
+		if (!m_Root[(char)*itFrom])
+			return nullptr;
+
 		return m_Root[(char)*itFrom]->is_tradable(itFrom, itTo);
+	}
+
+	const leaf* tree::add(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo, const MWINFO& info)
+	{
+		ASSERT(m_Root[(char)*itFrom]);
+
+		auto pRoot{ m_Root[(char)*itFrom].get() };
+
+		auto ret = pRoot->add(itFrom, itTo, info);
+
+		//	->update_info();
+		return ret;
 	}
 }

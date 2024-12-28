@@ -8,7 +8,7 @@
 #include "ChildView.h"
 #include "CSRevParamDlg.h"
 #include "CReportListDlg.h"
-#include "Trader.h"
+#include "fwd_leaf.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -56,6 +56,8 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_COMMAND(ID_PROJECT_SAVE, &CChildView::OnProjectSave)
 	ON_COMMAND(ID_TRADE, &CChildView::OnTrade)
 	ON_UPDATE_COMMAND_UI(ID_TRADE, &CChildView::OnUpdateTrade)
+	ON_COMMAND(ID_TRADE2, &CChildView::OnTrade2)
+	ON_UPDATE_COMMAND_UI(ID_TRADE2, &CChildView::OnUpdateTrade2)
 END_MESSAGE_MAP()
 
 
@@ -312,9 +314,9 @@ seq::leaf* CChildView::FindLeaf(HTREEITEM h)
 	return nullptr;
 }
 
-MWInfo CChildView::GetInfo(const seq::leaf& l) const
+MWINFO CChildView::GetInfo(const seq::leaf& l) const
 {
-	MWInfo ret{};
+	MWINFO ret{};
 	double diff;
 	const auto ch{ l.get_chain() };
 
@@ -782,6 +784,14 @@ seq::leaf make_tradable(const seq::leaf& l)
 //	return ret;
 //}
 
+Trader::TradePoint CChildView::ToTimePrice(const PNT& pnt)const
+{
+	if (m_Quotes.empty())
+		return std::make_pair(pnt.index, pnt.value);
+	else
+		return std::make_pair(m_Quotes[pnt.index].time, pnt.value);
+}
+
 void CChildView::OnTrade()
 {
 	ASSERT(!m_Quotes.empty());
@@ -796,29 +806,18 @@ void CChildView::OnTrade()
 	const auto rEnd{ m_Patterns.crend() };
 	auto itMWave{ m_MWaves.begin() };
 
-	auto to_time_price = [this](const PNT& pnt)->Trader::TradePoint
-		{
-			if (m_Quotes.empty())
-				return std::make_pair(pnt.index, pnt.value);
-			else
-				return std::make_pair(m_Quotes[pnt.index].time, pnt.value);
-		};
-
 	for (auto iter{ m_Patterns.begin() }; iter != m_Patterns.end(); ++iter, ++itMWave)
 	{
-		trader.Close(to_time_price(itMWave->leg));
+		trader.Close(ToTimePrice(itMWave->leg));
 		if (auto pLeaf{ tree.is_tradable(std::make_reverse_iterator(iter + 1), rEnd) })
-		{
-			trader.Open(pLeaf, to_time_price(itMWave->leg));
-
-			/*CString str{ ToString(pLeaf->chain()) };
-			str.AppendChar(_T('\n'));
-			OutputDebugString(str);*/
-		}
+			trader.Open(pLeaf, ToTimePrice(itMWave->leg));
 	}
 
-	//return;
+	ShowReportDlg(trader);
+}
 
+void CChildView::ShowReportDlg(const Trader& trader)
+{
 	auto pDlg{ new CReportListDlg{this} };
 	if (pDlg->Create(IDD_REPORT_LIST_DLG, this))
 	{
@@ -829,8 +828,55 @@ void CChildView::OnTrade()
 	else delete pDlg;
 }
 
-
 void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(!m_Quotes.empty());
+}
+
+
+void CChildView::OnTrade2()
+{
+	Trader trader;
+	fwd::tree tree;
+
+	const auto rPatEnd{ m_Patterns.crend() };
+	auto itMWave{ m_MWaves.begin() };
+
+	for (auto itPat{ m_Patterns.begin() }; itPat != m_Patterns.end(); ++itPat, ++itMWave)
+	{
+		if (itPat->get_id() < 0 || itPat->get_id() > 31)
+			continue;
+
+		auto rPatFrom{ std::make_reverse_iterator(itPat + 1) };
+
+		trader.Close(ToTimePrice(itMWave->leg));
+
+		if (auto pLeaf{ tree.is_tradable(rPatFrom, rPatEnd) })
+			trader.Open(pLeaf->is_buy(), pLeaf->get_chain(), ToTimePrice(itMWave->leg));
+
+		auto profit{ itMWave->next_leg.value - itMWave->leg.value };
+		if (itPat->is_w())
+			profit = -profit;
+		MWINFO info{};
+		if (profit >= .0)
+			info.Profit = profit;
+		else info.Loss = -profit;
+
+		auto pLeaf{ tree.add(rPatFrom, rPatEnd, info) };
+	}
+
+
+	/*trd::tree tree;
+	{
+
+
+	}*/
+
+	ShowReportDlg(trader);
+}
+
+
+void CChildView::OnUpdateTrade2(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(!m_Quotes.empty());
 }

@@ -10,13 +10,14 @@ namespace trd
 		bool isSelected{ false };
 		std::vector<leaf*> leaves;
 
-		MWInfo info;
+		MWINFO info;
 
 	public:
 		leaf();
 		leaf(const leaf&) = delete;
 		leaf(leaf&&) = default;
-		leaf(const seq::leaf&, const MWInfo&,const leaf* parent=nullptr);
+		leaf(mwave::Pattern);
+		leaf(const seq::leaf&, const MWINFO&,const leaf* parent=nullptr);
 		~leaf();
 
 		leaf& operator=(const leaf&) = delete;
@@ -31,6 +32,7 @@ namespace trd
 		seq::chain chain()const;
 		size_t depth()const;
 		const leaf* head()const;
+		const leaf* add(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo, const MWINFO& info);
 
 		void add(leaf*);
 
@@ -52,6 +54,7 @@ namespace trd
 		tree& operator=(tree&&) = default;
 
 		const leaf* is_tradable(seq::chain::const_reverse_iterator, seq::chain::const_reverse_iterator)const;
+		const leaf* add(seq::chain::const_reverse_iterator, seq::chain::const_reverse_iterator, const MWINFO&);
 
 		void set(std::unique_ptr<leaf>&&);
 	};
