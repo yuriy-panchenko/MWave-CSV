@@ -34,6 +34,8 @@ CChildView::CChildView()
 
 CChildView::~CChildView()
 {
+	for (INT_PTR i = 0; i < m_Reports.GetSize(); i++)
+		delete m_Reports[i];
 }
 
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
@@ -343,15 +345,15 @@ void CChildView::Quotes2MWave(const int period)
 	m_SRev = period;
 	m_SRev.Init(rec_count, empty_value);
 
-	std::vector<double> open(rec_count), high(rec_count), low(rec_count);
-	auto itOpen{ open.begin() }, itHigh{ high.begin() }, itLow{ low.begin() };
+	std::vector<double> Open(rec_count), high(rec_count), low(rec_count);
+	auto itOpen{ Open.begin() }, itHigh{ high.begin() }, itLow{ low.begin() };
 
 	for (const auto& rec : m_Quotes)
-		*itOpen++ = rec.open,
+		*itOpen++ = rec.Open,
 		*itHigh++ = rec.high,
 		*itLow++ = rec.low;
 
-	m_SRev.Apply(open, high, low);
+	m_SRev.Apply(Open, high, low);
 
 	MWAVE mw;
 	mw.leg.index = mw.next_leg.index = -1;
@@ -472,10 +474,10 @@ void CChildView::LoadFile(const std::filesystem::path& filename)
 				{
 					QUOTE_REC ret;
 					ret.time = make_time(line[0], line[1]);
-					ret.open = std::stod(std::wstring{ line[2].begin(), line[2].end() });
+					ret.Open = std::stod(std::wstring{ line[2].begin(), line[2].end() });
 					ret.high = std::stod(std::wstring{ line[3].begin(), line[3].end() });
 					ret.low = std::stod(std::wstring{ line[4].begin(), line[4].end() });
-					ret.close = std::stod(std::wstring{ line[5].begin(), line[5].end() });
+					ret.Close = std::stod(std::wstring{ line[5].begin(), line[5].end() });
 					ret.volTick = std::stoi(std::wstring{ line[6].begin(), line[6].end() });
 					ret.volume = std::stoi(std::wstring{ line[7].begin(), line[7].end() });
 					ret.spread = std::stoi(std::wstring{ line[8].begin(), line[8].end() });
@@ -789,7 +791,7 @@ void CChildView::OnTrade()
 	trd::tree tree;
 
 	for (auto& l : m_Tree)
-		tree.set(std::move(*Clone(l).release()));
+		tree.set(Clone(l));
 
 	const auto rEnd{ m_Patterns.crend() };
 	auto itMWave{ m_MWaves.begin() };
@@ -806,15 +808,29 @@ void CChildView::OnTrade()
 	{
 		trader.Close(to_time_price(itMWave->leg));
 		if (auto pLeaf{ tree.is_tradable(std::make_reverse_iterator(iter + 1), rEnd) })
-			trader.Open(pLeaf->is_buy(), to_time_price(itMWave->leg));
+		{
+			trader.Open(pLeaf, to_time_price(itMWave->leg));
+
+			/*CString str{ ToString(pLeaf->chain()) };
+			str.AppendChar(_T('\n'));
+			OutputDebugString(str);*/
+		}
 	}
 
-	//auto pDlg{ new CReportListDlg{this} };
-	//pDlg->m_List
+	//return;
+
+	auto pDlg{ new CReportListDlg{this} };
+	if (pDlg->Create(IDD_REPORT_LIST_DLG, this))
+	{
+		trader.Fill(pDlg->m_List);
+		pDlg->ShowWindow(SW_SHOW);
+		m_Reports.Add(pDlg);
+	}
+	else delete pDlg;
 }
 
 
 void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
 {
-	//pCmdUI->Enable();
+	pCmdUI->Enable(!m_Quotes.empty());
 }

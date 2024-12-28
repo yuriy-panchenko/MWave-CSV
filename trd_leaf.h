@@ -28,6 +28,9 @@ namespace trd
 		double diff()const;
 		bool is_selected()const;
 		const leaf* is_tradable(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo) const;
+		seq::chain chain()const;
+		size_t depth()const;
+		const leaf* head()const;
 
 		void add(leaf*);
 
@@ -37,7 +40,7 @@ namespace trd
 
 	class tree
 	{
-		leaf m_Root[32];
+		std::unique_ptr<leaf> m_Root[32];
 
 	public:
 		tree() = default;
@@ -50,7 +53,7 @@ namespace trd
 
 		const leaf* is_tradable(seq::chain::const_reverse_iterator, seq::chain::const_reverse_iterator)const;
 
-		void set(trd::leaf&&);
+		void set(std::unique_ptr<leaf>&&);
 	};
 }
 

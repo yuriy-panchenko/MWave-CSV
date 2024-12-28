@@ -2,6 +2,28 @@
 #include "seq.h"
 #include "trd_leaf.h"
 
+CString ToString(const seq::chain& ch)
+{
+	ASSERT(!ch.empty());
+
+	//if (ch.empty())
+	//	return {};
+
+	CString s;
+	s.Format(_T("%d"), (char)ch.front() + 1);
+
+	auto str{ s };
+
+	for (auto iter{ ch.begin() + 1 }; iter != ch.end(); ++iter)
+	{
+		str.AppendChar(_T(','));
+		s.Format(_T("%d"), (char)*iter + 1);
+		str.Append(s);
+	}
+
+	return str;
+}
+
 namespace seq
 {
 	leaf::leaf(mwave::Pattern mw)
@@ -160,15 +182,12 @@ namespace seq
 
 	bool leaf::select_by_children()
 	{
-		select(false);
+		isSelected = false;
 
 		for (auto p : leaves)
-			if (p->is_selected())
-			{
-				select();
+			if (isSelected = p->is_selected())
 				break;
-			}
-		
+
 		return is_selected();
 	}
 

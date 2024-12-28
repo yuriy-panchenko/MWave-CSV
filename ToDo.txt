@@ -13,3 +13,4 @@ on space bar down tick boxes
 PProfit/maxDD for price csv
 period status bar
 Ctrl+O
+chain status bar

@@ -5,6 +5,7 @@
 #include "trd_leaf.h"
 
 // CChildView window
+class CReportListDlg;
 
 class CChildView : public CWnd
 {
@@ -74,5 +75,5 @@ private:
 	CTreeCtrl m_ctrlTree;
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
-	//CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
+	CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
 };

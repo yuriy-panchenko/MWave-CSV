@@ -35,11 +35,25 @@ namespace trd
 		return pat.get_id() > -1 && pat.get_id() < 32;
 	}
 
+	const leaf* leaf::head()const
+	{
+		auto ret{ this };
+		ASSERT(ret == this);
+
+		while (ret->pPrev)
+		{
+			ASSERT_NULL_OR_POINTER(ret->pPrev, trd::leaf*);
+			ret = ret->pPrev;
+		}
+
+		return ret;
+	}
+
 	bool leaf::is_buy() const
 	{
 		ASSERT(is_valid());
 
-		return diff() >= .0 ? pat.is_m() : pat.is_w();
+		return diff() >= .0 ? head()->pat.is_m() : head()->pat.is_w();
 	}
 
 	double leaf::diff() const
@@ -65,7 +79,7 @@ namespace trd
 	{
 		if (itFrom == itTo)
 			return this;
-		
+
 		ASSERT(*itFrom == id());
 
 		if (!isSelected)
@@ -82,11 +96,44 @@ namespace trd
 		return this;
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////
-	void tree::set(trd::leaf&& l)
+	seq::chain leaf::chain() const
 	{
-		assert(l.is_valid());
-		m_Root[(char)l.id()] = std::move(l);
+		seq::chain ret;
+		ret.reserve(depth());
+
+		auto p{ this };
+
+		do
+		{
+			ret.push_back(p->pat);
+			p = p->pPrev;
+		} while (p);
+
+		std::reverse(ret.begin(), ret.end());
+
+		return ret;
+	}
+
+	size_t leaf::depth() const
+	{
+		size_t ret{ 0ull };
+
+		auto p{ this };
+
+		do
+		{
+			++ret;
+			p = p->pPrev;
+		} while (p);
+
+		return ret;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	void tree::set(std::unique_ptr<leaf>&& l)
+	{
+		assert(l->is_valid());
+		m_Root[(char)l->id()] = std::move(l);
 	}
 
 	const leaf* tree::is_tradable(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo) const
@@ -96,6 +143,6 @@ namespace trd
 		if (0 > (char)*itFrom || 31 < (char)*itFrom)
 			return nullptr;
 
-		return m_Root[(char)*itFrom].is_tradable(itFrom, itTo);
+		return m_Root[(char)*itFrom]->is_tradable(itFrom, itTo);
 	}
 }

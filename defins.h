@@ -16,16 +16,28 @@ struct MWAVE
 struct QUOTE_REC
 {
 	CTime time;
-	double open, high, low, close;
+	double Open, high, low, Close;
 	int volTick, volume, spread;
 };
 
 struct MWInfo { double PProfit, maxDD, Profit, Loss; };
 
-//struct MWaveTrade
-//{
-//	seq::leaf l;
-//	MWInfo i;
-//};
+template<typename T>
+CArchive& operator<<(CArchive& ar, const std::vector<T>& v)
+{
+	const uint64_t size{ v.size() };
+	ar.Write(&size, sizeof size);
+	ar.Write(v.data(), UINT(size * sizeof(T)));
+	return ar;
+}
 
-//using TradableTree = std::vector<MWaveTrade>;
+template<typename T>
+CArchive& operator>>(CArchive& ar, std::vector<T>& v)
+{
+	uint64_t size;
+	ar.Read(&size, sizeof size);
+	v.resize(size);
+	ar.Read(v.data(), UINT(size * sizeof(T)));
+	return ar;
+}
+

@@ -56,3 +56,5 @@ namespace seq
 		bool select_by_children();
 	};
 }
+
+CString ToString(const seq::chain&);
