@@ -4,10 +4,9 @@
 namespace fwd
 {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/*leaf::leaf()
-		:itPat{}
-	{
-	}*/
+	static const mwave::Pattern invalid_pattern{ -1 };
+	static const seq::chain invalid_chain{ invalid_pattern };
+	static const chRevIter invalid_iter{ invalid_chain.crbegin() };
 
 	leaf::leaf(chRevIter iter)
 		:info{}
@@ -92,22 +91,46 @@ namespace fwd
 		return ret;
 	}
 
-	const leaf* leaf::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i, const leaf* pParent)
+	const leaf* leaf::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i)
 	{
-		if (itPat == fwd::chRevIter{})
-		{
-			info = i;
-			pPrev = pParent;
-			itPat = itBeg;
-			return this;
-		}
-
 		ASSERT(id() == *itBeg);
 
-		if (auto pLeaf{ find_child((char)*(itBeg + 1)) })
-			return pLeaf->add(itBeg + 1, itEnd, i, this);
+		auto find_split = [itEnd](auto itMy, auto itOth)
+			{
+				while (itMy != itEnd)
+					if (*itMy++ != *itOth++)
+						break;
 
-		leaves.push_back(std::make_unique<leaf>(itBeg, info, this));
+				return itMy;
+			};
+
+		ASSERT(id() == *itBeg);
+		ASSERT(itBeg != itPat);
+
+
+		if (leaves.empty())
+		{
+			auto itSplit{ find_split(itPat + 1, itBeg + 1) };
+			if (itSplit == itEnd)
+				leaves.push_back(std::make_unique<leaf>(invalid_iter, info, this));
+			else
+			{
+				auto p{ this };
+				for (auto iter{ itPat + 1 }; iter != itSplit; ++iter)
+				{
+					p->leaves.push_back(std::make_unique<leaf>(iter, info, p));
+					p = p->leaves.back().get();
+				}
+			}
+
+			return add(itBeg, itEnd, i);
+		}
+
+		if (auto pLeaf{ find_child((char)*(itBeg + 1)) })
+			return pLeaf->add(itBeg + 1, itEnd, i);
+
+		leaves.push_back(std::make_unique<leaf>(itBeg + 1, i, this));
+
 
 		return leaves.back().get();
 	}
@@ -130,11 +153,11 @@ namespace fwd
 
 	const leaf* tree::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i)
 	{
-		auto pRoot{ get_root(*itBeg) };
-		if (!pRoot)
-			m_Root[(char)*itBeg] = std::make_unique<leaf>(itBeg, i, nullptr);
+		if (auto pRoot{ get_root(*itBeg) })
+			return pRoot->add(itBeg, itEnd, i);
 
-		return pRoot->add(itBeg, itEnd, i);
+		m_Root[(char)*itBeg] = std::make_unique<leaf>(itBeg, i, nullptr);
+		return m_Root[(char)*itBeg].get();
 	}
 
 	leaf* tree::get_root(mwave::Pattern p)

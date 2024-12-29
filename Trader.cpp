@@ -39,12 +39,14 @@ void Trader::Fill(CListCtrl& list) const
 		list.DeleteColumn(0);
 
 	int col{ 0 };
+	double total{ .0 };
 	list.InsertColumn(col++, _T("Num"));
 	list.InsertColumn(col++, _T("Chain"));
 	list.InsertColumn(col++, _T("Buy"));
 	list.InsertColumn(col++, _T("Sell"));
 	list.InsertColumn(col++, _T("Close"));
 	list.InsertColumn(col++, _T("Profit"));
+	list.InsertColumn(col++, _T("Total"));
 
 	CString str;
 	LVITEM item{};
@@ -83,6 +85,12 @@ void Trader::Fill(CListCtrl& list) const
 
 		++item.iSubItem;
 		str.Format(frm, tr.Profit());
+		item.pszText = (LPTSTR)(LPCTSTR)str;
+		list.SetItem(&item);
+
+		++item.iSubItem;
+		total += tr.Profit();
+		str.Format(frm, total);
 		item.pszText = (LPTSTR)(LPCTSTR)str;
 		list.SetItem(&item);
 

@@ -60,6 +60,12 @@
     <ClInclude Include="fwd_leaf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CChartDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="chart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MWave CSV.cpp">
@@ -93,6 +99,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fwd_leaf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CChartDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

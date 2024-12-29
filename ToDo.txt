@@ -1,5 +1,6 @@
 *tickboxes
 *save/load project
+*column total
 
 bar candles chart
 	scale

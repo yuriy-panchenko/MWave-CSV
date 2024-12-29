@@ -25,7 +25,7 @@ namespace fwd
 		leaf* find_child(mwave::Pattern p)const;
 		mwave::Pattern id()const;
 		chRevIter get_iter()const;
-		const leaf* add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i, const leaf* pParent = nullptr);
+		const leaf* add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i);
 
 	private:
 		//mwave::Pattern pat;

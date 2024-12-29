@@ -189,6 +189,8 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CChartDlg.h" />
+    <ClInclude Include="chart.h" />
     <ClInclude Include="ChildView.h" />
     <ClInclude Include="CReportListDlg.h" />
     <ClInclude Include="CSortListCtrl.h" />
@@ -206,6 +208,7 @@
     <ClInclude Include="trd_leaf.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CChartDlg.cpp" />
     <ClCompile Include="ChildView.cpp" />
     <ClCompile Include="CReportListDlg.cpp" />
     <ClCompile Include="CSortListCtrl.cpp" />

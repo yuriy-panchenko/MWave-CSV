@@ -7,6 +7,7 @@
 
 // CChildView window
 class CReportListDlg;
+class CChartDlg;
 
 class CChildView : public CWnd
 {
@@ -65,6 +66,8 @@ private:
 	std::unique_ptr<trd::leaf> Clone(const seq::leaf&, trd::leaf* parent=nullptr)const;
 	Trader::TradePoint ToTimePrice(const PNT& pnt)const;
 	void ShowReportDlg(const Trader&);
+	afx_msg void OnTrade2();
+	afx_msg void OnUpdateTrade2(CCmdUI* pCmdUI);
 
 private:
 	CString m_Filename, m_ProjectFilename;
@@ -79,7 +82,5 @@ private:
 	CListCtrl m_ctrlList;
 	CImageList m_imgList;
 	CTypedPtrArray<CPtrArray, CReportListDlg*> m_Reports;
-public:
-	afx_msg void OnTrade2();
-	afx_msg void OnUpdateTrade2(CCmdUI* pCmdUI);
+	CTypedPtrArray<CPtrArray, CChartDlg*> m_Charts;
 };

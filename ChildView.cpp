@@ -36,6 +36,9 @@ CChildView::~CChildView()
 {
 	for (INT_PTR i = 0; i < m_Reports.GetSize(); i++)
 		delete m_Reports[i];
+
+	for (INT_PTR i = 0; i < m_Charts.GetSize(); i++)
+		delete m_Charts[i];
 }
 
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
@@ -794,7 +797,7 @@ Trader::TradePoint CChildView::ToTimePrice(const PNT& pnt)const
 
 void CChildView::OnTrade()
 {
-	ASSERT(!m_Quotes.empty());
+	//ASSERT(!m_Quotes.empty());
 	ASSERT(m_Patterns.size() == m_MWaves.size());
 
 	Trader trader;
@@ -830,7 +833,7 @@ void CChildView::ShowReportDlg(const Trader& trader)
 
 void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(!m_Quotes.empty());
+	//pCmdUI->Enable(!m_Quotes.empty());
 }
 
 
@@ -864,13 +867,6 @@ void CChildView::OnTrade2()
 
 		auto pLeaf{ tree.add(rPatFrom, rPatEnd, info) };
 	}
-
-
-	/*trd::tree tree;
-	{
-
-
-	}*/
 
 	ShowReportDlg(trader);
 }
