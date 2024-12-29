@@ -29,7 +29,31 @@ void CChartDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CChartDlg, CDialogEx)
+	ON_WM_ERASEBKGND()
+	ON_WM_PAINT()
 END_MESSAGE_MAP()
 
 
 // CChartDlg message handlers
+
+
+BOOL CChartDlg::OnEraseBkgnd(CDC* pDC)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	//return CDialogEx::OnEraseBkgnd(pDC);
+
+	CRect rect;
+	GetClientRect(rect);
+	m_Chart->prepare_context(*pDC, rect);
+
+	return TRUE;
+}
+
+
+void CChartDlg::OnPaint()
+{
+	m_Chart->draw((CDC&)CPaintDC{ this }); // device context for painting
+	// TODO: Add your message handler code here
+	// Do not call CDialogEx::OnPaint() for painting messages
+}

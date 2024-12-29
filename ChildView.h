@@ -48,6 +48,8 @@ protected:
 	afx_msg void OnProjectSave();
 	afx_msg void OnTrade();
 	afx_msg void OnUpdateTrade(CCmdUI* pCmdUI);
+	afx_msg void OnTrade2();
+	afx_msg void OnUpdateTrade2(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -66,8 +68,7 @@ private:
 	std::unique_ptr<trd::leaf> Clone(const seq::leaf&, trd::leaf* parent=nullptr)const;
 	Trader::TradePoint ToTimePrice(const PNT& pnt)const;
 	void ShowReportDlg(const Trader&);
-	afx_msg void OnTrade2();
-	afx_msg void OnUpdateTrade2(CCmdUI* pCmdUI);
+	void ShowCummulativeChart(const Trader&);
 
 private:
 	CString m_Filename, m_ProjectFilename;

@@ -209,6 +209,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CChartDlg.cpp" />
+    <ClCompile Include="chart.cpp" />
     <ClCompile Include="ChildView.cpp" />
     <ClCompile Include="CReportListDlg.cpp" />
     <ClCompile Include="CSortListCtrl.cpp" />

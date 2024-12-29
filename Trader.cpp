@@ -102,3 +102,8 @@ void Trader::Fill(CListCtrl& list) const
 
 	list.SetRedraw();
 }
+
+const std::vector<Trader::TRADE_REC>& Trader::GetTrades() const
+{
+	return m_Trades;
+}

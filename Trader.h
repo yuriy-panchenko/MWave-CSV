@@ -21,6 +21,7 @@ public:
 	void Open(BOOL isBuy, seq::chain ch, const TradePoint&);
 	void Close(const TradePoint&);
 	void Fill(CListCtrl&)const;
+	const std::vector<TRADE_REC>& GetTrades()const;
 
 private:
 	enum Dir { Closed, Long, Short, } m_State;

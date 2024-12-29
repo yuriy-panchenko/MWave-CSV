@@ -8,6 +8,7 @@
 #include "ChildView.h"
 #include "CSRevParamDlg.h"
 #include "CReportListDlg.h"
+#include "CChartDlg.h"
 #include "fwd_leaf.h"
 
 #ifdef _DEBUG
@@ -817,16 +818,43 @@ void CChildView::OnTrade()
 	}
 
 	ShowReportDlg(trader);
+	ShowCummulativeChart(trader);
 }
 
 void CChildView::ShowReportDlg(const Trader& trader)
 {
-	auto pDlg{ new CReportListDlg{this} };
+	auto pDlg{ new CReportListDlg };
 	if (pDlg->Create(IDD_REPORT_LIST_DLG, this))
 	{
 		trader.Fill(pDlg->m_List);
 		pDlg->ShowWindow(SW_SHOW);
 		m_Reports.Add(pDlg);
+	}
+	else delete pDlg;
+}
+
+void CChildView::ShowCummulativeChart(const Trader& trader)
+{
+	auto get_total_data = [trader]()->CChartDlg::chart_ptr
+		{
+			double total{ .0 };
+			std::vector<double> arr(trader.GetTrades().size());
+			auto iter{ arr.begin() };
+
+			for (auto& tr : trader.GetTrades())
+			{
+				total += tr.Profit();
+				*iter++ = total;
+			}
+			
+			return std::make_unique<chart::line>(std::move(arr));
+		};
+
+	auto pDlg{ new CChartDlg{get_total_data()}};
+	if (pDlg->Create(IDD_CHART_DLG, this))
+	{
+		pDlg->ShowWindow(SW_SHOW);
+		m_Charts.Add(pDlg);
 	}
 	else delete pDlg;
 }

@@ -102,6 +102,8 @@ namespace trd
 			//return this;
 
 		auto nxt{ itFrom + 1 };
+		if (nxt == itTo)
+			return this;
 
 		if (auto pLeaf{ find_child(*nxt) })
 			return pLeaf->is_tradable(nxt, itTo);
