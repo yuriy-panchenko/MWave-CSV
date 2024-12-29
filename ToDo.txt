@@ -1,13 +1,13 @@
 *tickboxes
 *save/load project
 *column total
+*cumulative chart
+*table of trades
 
 bar candles chart
 	scale
 	timeline
 
-table of trades
-cummulative chart
 button reload file
 recent files list
 on space bar down tick boxes
@@ -15,3 +15,5 @@ PProfit/maxDD for price csv
 period status bar
 Ctrl+O
 chain status bar
+iWn, iLoss info
+

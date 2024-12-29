@@ -38,6 +38,7 @@ namespace trd
 
 	protected:
 		const leaf* find_child(mwave::Pattern)const;
+		size_t get_child_count()const;
 	};
 
 	class tree

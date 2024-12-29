@@ -68,7 +68,7 @@ private:
 	std::unique_ptr<trd::leaf> Clone(const seq::leaf&, trd::leaf* parent=nullptr)const;
 	Trader::TradePoint ToTimePrice(const PNT& pnt)const;
 	void ShowReportDlg(const Trader&);
-	void ShowCummulativeChart(const Trader&);
+	void ShowCumulativeChart(const Trader&);
 
 private:
 	CString m_Filename, m_ProjectFilename;

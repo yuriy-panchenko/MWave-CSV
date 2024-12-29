@@ -818,7 +818,7 @@ void CChildView::OnTrade()
 	}
 
 	ShowReportDlg(trader);
-	ShowCummulativeChart(trader);
+	ShowCumulativeChart(trader);
 }
 
 void CChildView::ShowReportDlg(const Trader& trader)
@@ -833,7 +833,7 @@ void CChildView::ShowReportDlg(const Trader& trader)
 	else delete pDlg;
 }
 
-void CChildView::ShowCummulativeChart(const Trader& trader)
+void CChildView::ShowCumulativeChart(const Trader& trader)
 {
 	auto get_total_data = [trader]()->CChartDlg::chart_ptr
 		{
@@ -897,7 +897,7 @@ void CChildView::OnTrade2()
 	}
 
 	ShowReportDlg(trader);
-	ShowCummulativeChart(trader);
+	ShowCumulativeChart(trader);
 }
 
 

@@ -87,6 +87,19 @@ namespace trd
 		return nullptr;
 	}
 
+	size_t leaf::get_child_count() const
+	{
+		if (leaves.empty())
+			return 1;
+
+		size_t ret{ 0 };
+
+		for (auto p : leaves)
+			ret += p->get_child_count();
+
+		return ret;
+	}
+
 	const leaf* leaf::is_tradable(const seq::chain::const_reverse_iterator itFrom, const seq::chain::const_reverse_iterator itTo) const
 	{
 		if (itFrom == itTo)
@@ -99,14 +112,15 @@ namespace trd
 
 		if (leaves.empty())
 			return pPrev ? pPrev : this;
-			//return this;
+		//return this;
 
 		auto nxt{ itFrom + 1 };
 		if (nxt == itTo)
 			return this;
 
 		if (auto pLeaf{ find_child(*nxt) })
-			return pLeaf->is_tradable(nxt, itTo);
+			if (pLeaf->get_child_count() >= 100)
+				return pLeaf->is_tradable(nxt, itTo);
 
 		return this;
 	}
