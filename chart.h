@@ -15,6 +15,9 @@ namespace chart
 		CDC& get_dc();
 		CRect get_canvas()const;
 
+	protected:
+		double dMax{ DBL_MIN }, dMin{ DBL_MAX };
+
 	private:
 		void clear();
 

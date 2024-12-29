@@ -10,12 +10,49 @@ namespace chart
 		, data{ std::move(arr) }
 	{
 		pen.CreatePen(iStyle, iWidth, color);
+
+		for (auto db : data)
+			dMax = max(dMax, db),
+			dMin = min(dMin, db);
+
+		const auto extra{ (dMax - dMin) / 40 };
+		dMax += extra, dMin -= extra;
 	}
 
 	void line::render()
 	{
+		const auto elCount{ data.size() };
+		CArray<CPoint> pnts;
+		pnts.SetSize(elCount);
+		const auto c{ get_canvas() };
+		const auto cx{ c.Width() }, cy{ c.Height() };
+		const auto diff{ dMax - dMin };
+
+		auto to_point = [&](int ind, double val)->CPoint
+			{
+				CPoint ret;
+				ret.x = c.left + int((ind + .5) * cx / elCount);
+				ret.y = c.top + int((dMax - val) * cy / diff);
+				return ret;
+			};
+
+		int index{ 0 };
+
+		for (auto db : data)
+		{
+			pnts.SetAt(index, to_point(index, db));
+			++index;
+		}
+
 		auto& dc{ get_dc() };
 		const auto iSave{ dc.SaveDC() };
+		dc.SelectObject(pen);
+		auto pnt{ to_point(0, .0) };
+		dc.MoveTo(pnt);
+
+		for (INT_PTR i = 0; i < pnts.GetSize(); ++i)
+			if (pnts[i] != pnt)
+				dc.LineTo(pnt = pnts[i]);
 
 		dc.RestoreDC(iSave);
 	}

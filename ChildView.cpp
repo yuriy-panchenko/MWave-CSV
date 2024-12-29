@@ -897,6 +897,7 @@ void CChildView::OnTrade2()
 	}
 
 	ShowReportDlg(trader);
+	ShowCummulativeChart(trader);
 }
 
 

@@ -45,9 +45,10 @@ BOOL CChartDlg::OnEraseBkgnd(CDC* pDC)
 
 	CRect rect;
 	GetClientRect(rect);
+	InvalidateRect(rect);
 	m_Chart->prepare_context(*pDC, rect);
 
-	return TRUE;
+	return FALSE;
 }
 
 
