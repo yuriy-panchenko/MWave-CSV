@@ -7,11 +7,11 @@ namespace fwd
 	class leaf
 	{
 	public:
-		leaf()=delete;
+		leaf() = delete;
 		leaf(const leaf&) = delete;
 		leaf(leaf&&) = default;
 		leaf(chRevIter);
-		leaf(chRevIter, const MWINFO&, const leaf*);
+		leaf(chRevIter, const MWINFO&, leaf*);
 		//leaf(mwave::Pattern p);
 		~leaf() = default;
 
@@ -25,12 +25,17 @@ namespace fwd
 		leaf* find_child(mwave::Pattern p)const;
 		mwave::Pattern id()const;
 		chRevIter get_iter()const;
+		const leaf& head()const;
+
 		const leaf* add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i);
+		const MWINFO& update_info();
+		leaf& head();
+
 
 	private:
 		//mwave::Pattern pat;
 		MWINFO info;
-		const leaf* pPrev;
+		leaf* pPrev;
 
 		chRevIter itPat;
 		std::vector<std::unique_ptr<leaf>> leaves;

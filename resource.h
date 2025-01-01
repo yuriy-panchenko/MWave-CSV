@@ -16,6 +16,8 @@
 #define IDD_REPORT_LIST_DLG             316
 #define IDD_DIALOG1                     318
 #define IDD_CHART_DLG                   318
+#define IDD_DIALOG2                     320
+#define IDD_TRADE_SETTINGS_DLG          320
 #define IDC_PERIOD                      1000
 #define IDC_SPIN1                       1001
 #define IDC_PERIOD_SPIN                 1001
@@ -35,7 +37,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        320
+#define _APS_NEXT_RESOURCE_VALUE        322
 #define _APS_NEXT_COMMAND_VALUE         32779
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           312

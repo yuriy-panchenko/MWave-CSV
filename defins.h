@@ -23,6 +23,10 @@ struct QUOTE_REC
 struct MWINFO
 {
 	double PProfit, maxDD, Profit, Loss;
+	int iWin, iLose;
+	
+	void operator+=(const MWINFO&);
+
 	double Net()const { return Profit - Loss; }
 };
 

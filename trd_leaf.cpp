@@ -119,8 +119,8 @@ namespace trd
 			return this;
 
 		if (auto pLeaf{ find_child(*nxt) })
-			if (pLeaf->get_child_count() >= 100)
-				return pLeaf->is_tradable(nxt, itTo);
+			//if (pLeaf->get_child_count() >= 25)
+			return pLeaf->is_tradable(nxt, itTo);
 
 		return this;
 	}
@@ -132,11 +132,8 @@ namespace trd
 
 		auto p{ this };
 
-		do
-		{
-			ret.push_back(p->pat);
-			p = p->pPrev;
-		} while (p);
+		do ret.push_back(p->pat);
+		while (p = p->pPrev);
 
 		std::reverse(ret.begin(), ret.end());
 
@@ -149,11 +146,8 @@ namespace trd
 
 		auto p{ this };
 
-		do
-		{
-			++ret;
-			p = p->pPrev;
-		} while (p);
+		do ++ret;
+		while (p = p->pPrev);
 
 		return ret;
 	}

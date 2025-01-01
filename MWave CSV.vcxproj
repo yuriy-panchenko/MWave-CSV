@@ -214,6 +214,7 @@
     <ClCompile Include="CReportListDlg.cpp" />
     <ClCompile Include="CSortListCtrl.cpp" />
     <ClCompile Include="CSRevParamDlg.cpp" />
+    <ClCompile Include="defins.cpp" />
     <ClCompile Include="fwd_leaf.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MWave CSV.cpp" />
