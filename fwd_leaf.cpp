@@ -30,8 +30,6 @@ namespace fwd
 		if (*itPat != *itBegin)
 			return nullptr;
 
-		//	is threshold reached?
-
 		if (leaves.empty())
 			return this;
 
@@ -64,7 +62,7 @@ namespace fwd
 
 	bool leaf::is_buy()const
 	{
-		return info.Net() >= .0 ? itPat->is_m() : itPat->is_w();
+		return info.Net() >= .0 ? head().id().is_m() : head().id().is_w();
 	}
 
 	size_t leaf::depth()const
@@ -107,30 +105,20 @@ namespace fwd
 		ASSERT(id() == *itBeg);
 		ASSERT(itBeg != itPat);
 
-		auto insert_new_leaf = [](leaf* p, auto iter, const auto& i)
-			{
-				auto info{ i };
-				info.iWin = info.iLose = 0;
-				if (p->head().id().is_m())
-					(info.Profit - info.Loss > .0 ? info.iWin : info.iLose) = 1;
-				else
-					(info.Profit - info.Loss > .0 ? info.iLose : info.iWin) = 1;
-
-				p->leaves.push_back(std::make_unique<leaf>(iter, info, p));
-				return p->leaves.back().get();
-			};
-
 
 		if (leaves.empty())
 		{
 			auto itSplit{ find_split(itPat + 1, itBeg + 1) };
 			if (itSplit == itEnd)
-				leaves.push_back(std::make_unique<leaf>(invalid_iter, MWINFO{}, this));
+				leaves.push_back(std::make_unique<leaf>(invalid_iter, info, this));
 			else
 			{
 				auto p{ this };
 				for (auto iter{ itPat + 1 }; iter != itSplit; ++iter)
-					p = insert_new_leaf(p, iter, info);
+				{
+					p->leaves.push_back(std::make_unique<leaf>(iter, info, p));
+					p = p->leaves.back().get();
+				}
 			}
 
 			return add(itBeg, itEnd, i);
@@ -139,8 +127,7 @@ namespace fwd
 		if (auto pLeaf{ find_child((char)*(itBeg + 1)) })
 			return pLeaf->add(itBeg + 1, itEnd, i);
 
-		insert_new_leaf(this, itBeg + 1, i);
-		//leaves.push_back(std::make_unique<leaf>(itBeg + 1, i, this));
+		leaves.push_back(std::make_unique<leaf>(itBeg + 1, i, this));
 
 		head().update_info();
 
@@ -163,6 +150,11 @@ namespace fwd
 	const leaf& leaf::head()const
 	{
 		return pPrev ? pPrev->head() : *this;
+	}
+
+	const MWINFO& leaf::get_info() const
+	{
+		return info;
 	}
 
 	leaf& leaf::head()
@@ -189,7 +181,14 @@ namespace fwd
 	const leaf* tree::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i)
 	{
 		if (auto pRoot{ get_root(*itBeg) })
+		{
+			if (*itBeg == 10)
+			{
+				int y = 0;
+			}
 			return pRoot->add(itBeg, itEnd, i);
+		}
+		//return pRoot->add(itBeg, itEnd, i);
 
 		m_Root[(char)*itBeg] = std::make_unique<leaf>(itBeg, i, nullptr);
 		return m_Root[(char)*itBeg].get();

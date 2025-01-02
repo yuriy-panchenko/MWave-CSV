@@ -26,6 +26,7 @@ namespace fwd
 		mwave::Pattern id()const;
 		chRevIter get_iter()const;
 		const leaf& head()const;
+		const MWINFO& get_info()const;
 
 		const leaf* add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i);
 		const MWINFO& update_info();

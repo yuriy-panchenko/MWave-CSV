@@ -195,6 +195,7 @@
     <ClInclude Include="CReportListDlg.h" />
     <ClInclude Include="CSortListCtrl.h" />
     <ClInclude Include="CSRevParamDlg.h" />
+    <ClInclude Include="CTRadeSettingDlg.h" />
     <ClInclude Include="defins.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="fwd_leaf.h" />
@@ -214,6 +215,7 @@
     <ClCompile Include="CReportListDlg.cpp" />
     <ClCompile Include="CSortListCtrl.cpp" />
     <ClCompile Include="CSRevParamDlg.cpp" />
+    <ClCompile Include="CTRadeSettingDlg.cpp" />
     <ClCompile Include="defins.cpp" />
     <ClCompile Include="fwd_leaf.cpp" />
     <ClCompile Include="MainFrm.cpp" />

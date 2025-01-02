@@ -10,6 +10,7 @@
 #include "CReportListDlg.h"
 #include "CChartDlg.h"
 #include "fwd_leaf.h"
+#include "CTRadeSettingDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -846,11 +847,11 @@ void CChildView::ShowCumulativeChart(const Trader& trader)
 				total += tr.Profit();
 				*iter++ = total;
 			}
-			
+
 			return std::make_unique<chart::line>(std::move(arr));
 		};
 
-	auto pDlg{ new CChartDlg{get_total_data()}};
+	auto pDlg{ new CChartDlg{get_total_data()} };
 	if (pDlg->Create(IDD_CHART_DLG, this))
 	{
 		pDlg->ShowWindow(SW_SHOW);
@@ -864,9 +865,26 @@ void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
 	//pCmdUI->Enable(!m_Quotes.empty());
 }
 
+const fwd::leaf* ConfirmIsTradable(const fwd::leaf* pL, const seq::chain::const_reverse_iterator iter, const double minProfit)
+{
+	if (/*abs*/(pL->get_info().Net()/pL->get_info().TradeCount()) >= minProfit
+		//&& pL->get_info().iWin < pL->get_info().iLose
+		)
+		return pL;
+
+	if (auto pChild{ pL->find_child(*(iter + 1)) })
+		return ConfirmIsTradable(pChild, iter + 1, minProfit);
+
+	return nullptr;
+}
 
 void CChildView::OnTrade2()
 {
+	CTradeSettingDlg dlg;
+	dlg.m_MinProfit = 2.;
+	if (dlg.DoModal() != IDOK)
+		return;
+
 	Trader trader;
 	fwd::tree tree;
 
@@ -883,17 +901,10 @@ void CChildView::OnTrade2()
 		trader.Close(ToTimePrice(itMWave->leg));
 
 		if (auto pLeaf{ tree.is_tradable(rPatFrom, rPatEnd) })
-			trader.Open(pLeaf->is_buy(), pLeaf->get_chain(), ToTimePrice(itMWave->leg));
+			if (pLeaf = ConfirmIsTradable(&pLeaf->head(), rPatFrom, dlg.m_MinProfit))
+				trader.Open(pLeaf->is_buy(), pLeaf->get_chain(), ToTimePrice(itMWave->leg));
 
-		auto profit{ itMWave->next_leg.value - itMWave->leg.value };
-		if (itPat->is_w())
-			profit = -profit;
-		MWINFO info{};
-		if (profit >= .0)
-			info.Profit = profit;
-		else info.Loss = -profit;
-
-		auto pLeaf{ tree.add(rPatFrom, rPatEnd, info) };
+		auto pLeaf{ tree.add(rPatFrom, rPatEnd, { *itPat, *itMWave }) };
 	}
 
 	ShowReportDlg(trader);

@@ -24,10 +24,14 @@ struct MWINFO
 {
 	double PProfit, maxDD, Profit, Loss;
 	int iWin, iLose;
-	
+
+	MWINFO() = default;
+	MWINFO(mwave::Pattern,const MWAVE&);
+
 	void operator+=(const MWINFO&);
 
 	double Net()const { return Profit - Loss; }
+	int TradeCount()const { return iWin + iLose; }
 };
 
 template<typename T>
