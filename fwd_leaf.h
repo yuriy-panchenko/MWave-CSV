@@ -27,6 +27,7 @@ namespace fwd
 		chRevIter get_iter()const;
 		const leaf& head()const;
 		const MWINFO& get_info()const;
+		std::string dump(const std::string& prefix)const;
 
 		const leaf* add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i);
 		const MWINFO& update_info();
@@ -50,6 +51,8 @@ namespace fwd
 		tree() = default;
 
 		const leaf* is_tradable(chRevIter, chRevIter)const;
+		void dump(std::filesystem::path&&)const;
+		
 		const leaf* add(chRevIter, chRevIter, const MWINFO&);
 		leaf* get_root(mwave::Pattern);
 	};

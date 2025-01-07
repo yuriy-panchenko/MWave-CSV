@@ -62,7 +62,9 @@ namespace fwd
 
 	bool leaf::is_buy()const
 	{
-		return info.Net() >= .0 ? head().id().is_m() : head().id().is_w();
+		return info.Net() >= .0
+			? head().id().is_m()
+			: head().id().is_w();
 	}
 
 	size_t leaf::depth()const
@@ -92,6 +94,7 @@ namespace fwd
 	const leaf* leaf::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i)
 	{
 		ASSERT(id() == *itBeg);
+		ASSERT(itBeg != itPat);
 
 		auto find_split = [itEnd](auto itMy, auto itOth)
 			{
@@ -101,10 +104,6 @@ namespace fwd
 
 				return itMy;
 			};
-
-		ASSERT(id() == *itBeg);
-		ASSERT(itBeg != itPat);
-
 
 		if (leaves.empty())
 		{
@@ -157,6 +156,29 @@ namespace fwd
 		return info;
 	}
 
+	std::string leaf::dump(const std::string& prefix) const
+	{
+		std::string ret;
+
+		ret = prefix + "#" + std::to_string((char)id() + 1) + '\n'
+			+ prefix + "profit : " + std::to_string(info.Profit) + '\n'
+			+ prefix + "loss : " + std::to_string(info.Loss) + '\n'
+			+ prefix + "win : " + std::to_string(info.iWin) + '\n'
+			+ prefix + "lost : " + std::to_string(info.iLose) + '\n'
+			+ prefix + "child : " + std::to_string(leaves.size()) + '\n'
+			;
+
+		if (!leaves.empty())
+		{
+			ret += prefix + "{\n";
+			for (auto& l : leaves)
+				ret += l->dump(prefix + '\t');
+			ret += prefix + "{\n";
+		}
+
+		return ret;
+	}
+
 	leaf& leaf::head()
 	{
 		return pPrev ? pPrev->head() : *this;
@@ -178,17 +200,21 @@ namespace fwd
 		return l->is_tradable(itFrom, itTo);
 	}
 
+	void tree::dump(std::filesystem::path&& filename) const
+	{
+		std::string str;
+		for (auto& l : m_Root)
+			str += l->dump("\t");
+
+		std::ofstream s{ filename };
+		if (s)
+			s << str;
+	}
+
 	const leaf* tree::add(const chRevIter itBeg, const chRevIter itEnd, const MWINFO& i)
 	{
 		if (auto pRoot{ get_root(*itBeg) })
-		{
-			if (*itBeg == 10)
-			{
-				int y = 0;
-			}
 			return pRoot->add(itBeg, itEnd, i);
-		}
-		//return pRoot->add(itBeg, itEnd, i);
 
 		m_Root[(char)*itBeg] = std::make_unique<leaf>(itBeg, i, nullptr);
 		return m_Root[(char)*itBeg].get();

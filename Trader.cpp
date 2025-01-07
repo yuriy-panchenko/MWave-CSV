@@ -107,3 +107,26 @@ const std::vector<Trader::TRADE_REC>& Trader::GetTrades() const
 {
 	return m_Trades;
 }
+
+void Trader::Dump(std::filesystem::path&& filename) const
+{
+	static const std::string buy{ "b" }, sell{ "s" };
+
+	auto to_text = [](const Trader::TradePoint& t)->std::string
+		{
+			return std::to_string((__time32_t)t.first.GetTime()) + '\t' + std::to_string(t.second);
+		};
+
+	std::string str;
+
+	for (auto& tr : m_Trades)
+		str +=
+		(tr.isBuy ? buy : sell) + '\t'
+			+ to_text(tr.Open) + '\t'
+			+ to_text(tr.Close) + '\n'
+			;
+
+	std::ofstream s{ filename };
+	if (s)
+		s << str;
+}

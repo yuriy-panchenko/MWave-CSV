@@ -22,6 +22,7 @@ public:
 	void Close(const TradePoint&);
 	void Fill(CListCtrl&)const;
 	const std::vector<TRADE_REC>& GetTrades()const;
+	void Dump(std::filesystem::path&&)const;
 
 private:
 	enum Dir { Closed, Long, Short, } m_State;

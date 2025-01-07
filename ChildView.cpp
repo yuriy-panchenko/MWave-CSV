@@ -867,7 +867,10 @@ void CChildView::OnUpdateTrade(CCmdUI* pCmdUI)
 
 const fwd::leaf* ConfirmIsTradable(const fwd::leaf* pL, const seq::chain::const_reverse_iterator iter, const double minProfit)
 {
-	if (/*abs*/(pL->get_info().Net()/pL->get_info().TradeCount()) >= minProfit
+	auto& i{ pL->get_info() };
+	if (
+		i.TradeCount() >= 10
+		&& abs(i.Profit - i.Loss) / i.TradeCount() >= minProfit
 		//&& pL->get_info().iWin < pL->get_info().iLose
 		)
 		return pL;
@@ -909,6 +912,9 @@ void CChildView::OnTrade2()
 
 	ShowReportDlg(trader);
 	ShowCumulativeChart(trader);
+
+	//tree.dump(_T("tree.txt"));
+	trader.Dump(_T("t2_trades.tsv"));
 }
 
 
